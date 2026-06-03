@@ -1,0 +1,6 @@
+cd Desktop/AttendX
+git status
+git add .
+git status
+git commit -m "Update app"
+git push origin main
