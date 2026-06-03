@@ -105,6 +105,8 @@ html,body{height:100%;background:#0d0c09;}
 .add-cls-btn:hover{border-color:var(--accent);color:var(--accent);background:#1a0e08;}
 .exp-all-btn{width:100%;font-family:var(--mono);font-size:0.7rem;font-weight:500;background:#14633a;color:#a8ffc8;border:none;padding:8px;border-radius:7px;cursor:pointer;transition:background 0.15s;letter-spacing:0.04em;}
 .exp-all-btn:hover{background:#197e4a;}
+.def-btn{width:100%;font-family:var(--mono);font-size:0.7rem;font-weight:500;background:#d97706;color:#fff;border:none;padding:8px;border-radius:7px;cursor:pointer;transition:background 0.15s;letter-spacing:0.04em;}
+.def-btn:hover{background:#b45309;}
 .save-badge{font-family:var(--mono);font-size:0.58rem;color:#3a3830;text-align:center;padding:4px 0 2px;letter-spacing:0.06em;}
 .save-badge.saved{color:#2a6b46;}.save-badge.saving{color:#7a6a20;}
 
@@ -776,6 +778,132 @@ export default function App() {
     classes.forEach(cls=>{ let sn=((cls.info?.subject)||(cls.info?.course)||"Class").replace(/[:\\/?*\[\]]/g,"").slice(0,24)||"Sheet"; const sfx=cls.type==="marks"?" Marks":" Att"; let fn=(sn+sfx).slice(0,31); let n=2; while(used[fn]){fn=`${sn}_${n++}`;} used[fn]=1; XLSX.utils.book_append_sheet(wb, cls.type==="marks"?buildMarksWs(cls):buildAttWs(cls), fn); });
     XLSX.writeFile(wb,"attendx_all_classes.xlsx");
   };
+
+  const exportDefaultersAll = () => {
+    const threshold = 75;
+    const rows = [];
+
+    classes.forEach(cls => {
+      if (cls.type === "marks") return;
+
+      const dates = [...(cls.dates ?? [])].sort();
+      const inf = cls.info ?? {};
+
+      (cls.students ?? []).forEach(s => {
+        let p = 0;
+        let a = 0;
+        let total = 0;
+
+        dates.forEach(d => {
+          const v = getCell(cls, s.id, d);
+          if (isP(v)) { p++; total++; }
+          else if (isA(v)) { a++; total++; }
+        });
+
+        if (!total) return;
+
+        const pct = Math.round((p / total) * 100);
+
+        if (pct < threshold) {
+          let level = "Below 75%";
+          if (pct < 25) level = "Below 25%";
+          else if (pct < 60) level = "Below 60%";
+
+          rows.push({
+            faculty: inf.faculty || "",
+            session: inf.session || "",
+            teacher: inf.teacher || "",
+            subject: inf.subject || "",
+            course: inf.course || "",
+            studentId: s.roll || "",
+            systemId: s.systemId || "",
+            name: s.name || "",
+            totalClasses: total,
+            present: p,
+            absent: a,
+            attendancePct: pct,
+            level,
+          });
+        }
+      });
+    });
+
+    if (!rows.length) {
+      alert(`No defaulters found below ${threshold}%.`);
+      return;
+    }
+
+    rows.sort((x, y) =>
+      String(x.course).localeCompare(String(y.course)) ||
+      String(x.subject).localeCompare(String(y.subject)) ||
+      x.attendancePct - y.attendancePct ||
+      String(x.name).localeCompare(String(y.name))
+    );
+
+    const header = [
+      "Sr. No.",
+      "Faculty / Department",
+      "Session",
+      "Teacher",
+      "Subject",
+      "Course / Class / Section",
+      "Student ID",
+      "System ID",
+      "Student Name",
+      "Total Classes",
+      "Present",
+      "Absent",
+      "Attendance %",
+      "Defaulter Level"
+    ];
+
+    const data = rows.map((r, i) => [
+      i + 1,
+      r.faculty,
+      r.session,
+      r.teacher,
+      r.subject,
+      r.course,
+      r.studentId,
+      r.systemId,
+      r.name,
+      r.totalClasses,
+      r.present,
+      r.absent,
+      `${r.attendancePct}%`,
+      r.level
+    ]);
+
+    const titleRows = [
+      ["AttendX - Combined Defaulter List"],
+      [`Generated On: ${new Date().toLocaleDateString()}`],
+      [`Threshold: Below ${threshold}%`],
+      []
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet([...titleRows, header, ...data]);
+
+    ws["!cols"] = [
+      { wch: 8 },
+      { wch: 28 },
+      { wch: 18 },
+      { wch: 22 },
+      { wch: 22 },
+      { wch: 24 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 28 },
+      { wch: 14 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 16 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Defaulter List");
+    XLSX.writeFile(wb, "attendx_combined_defaulter_list.xlsx");
+  };
   const exportOne = () => {
     if(!active)return;
     const wb=XLSX.utils.book_new();
@@ -829,6 +957,7 @@ export default function App() {
             <div className={`save-badge ${saveStatus}`}>{saveStatus==="saving"?"⟳ saving…":"✓ all changes saved"}</div>
             <button className="add-cls-btn" onClick={()=>setShowModal(true)}>+ New Class</button>
             <button className="exp-all-btn" onClick={exportAll}>↓ Export All Classes</button>
+            <button className="def-btn" onClick={exportDefaultersAll}>⚠ Generate Defaulter List</button>
           </div>
         </div>
 
