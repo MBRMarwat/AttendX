@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import * as XLSX from "xlsx";
 
 // ─── utils ────────────────────────────────────────────────────────────────────
@@ -30,6 +30,22 @@ const MIN_NAME_W=160, MAX_NAME_W=320;
 const CLASS_COLORS=["#e04e20","#2563eb","#16a34a","#9333ea","#ea580c","#0891b2","#be185d","#ca8a04"];
 const STORAGE_KEY = "attendx_v3";
 const LOW_ATT_THRESHOLD = 25;
+const DEFAULTER_THRESHOLD = 75;
+const MAX_UNDO = 30;
+
+const DEFAULT_GRADES = [
+  { label: "A+", min: 90 },
+  { label: "A",  min: 85 },
+  { label: "A-", min: 80 },
+  { label: "B+", min: 75 },
+  { label: "B",  min: 70 },
+  { label: "B-", min: 65 },
+  { label: "C+", min: 60 },
+  { label: "C",  min: 55 },
+  { label: "C-", min: 50 },
+  { label: "D",  min: 45 },
+  { label: "F",  min: 0 },
+];
 
 const emptyInfo = { faculty:"", session:"", teacher:"", subject:"", course:"" };
 
@@ -56,6 +72,10 @@ const sanitizeClasses = (input) => {
       weight: Number(a.weight) || 0,
     })) : [],
     marks: c.marks && typeof c.marks === "object" ? c.marks : {},
+    grades: Array.isArray(c.grades) && c.grades.length ? c.grades.map(g => ({
+      label: String(g.label ?? ""),
+      min: Number(g.min) ?? 0,
+    })) : [...DEFAULT_GRADES],
   }));
 };
 
@@ -67,8 +87,8 @@ html,body,#root{height:100%;}
 html{font-size:15px;}
 body{
   min-height:100%;
-  background:#eef2f7;
-  color:#0f172a;
+  background:var(--bg);
+  color:var(--text);
   font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   -webkit-font-smoothing:antialiased;
   text-rendering:geometricPrecision;
@@ -112,6 +132,147 @@ body{
   --shadow-lg:0 24px 64px rgba(15,23,42,.22);
   --radius:18px;
 }
+/* ── dark mode ── */
+.dark{
+  --bg:#0b0f1a;
+  --surface:#141926;
+  --surface-2:#1a2030;
+  --surface-3:#1e2538;
+  --border:#2a3146;
+  --border-s:#3b4563;
+  --text:#e2e8f0;
+  --muted:#8892a8;
+  --muted-2:#64748b;
+  --hdr:#141926;
+  --hdr2:#1a2030;
+  --fg:#e2e8f0;
+  --accent:#818cf8;
+  --accent2:#38bdf8;
+  --accent-soft:rgba(99,102,241,.15);
+  --gold:#fbbf24;
+  --purple:#a78bfa;
+  --green:#4ade80;
+  --red:#f87171;
+  --orange:#fb923c;
+  --p-bg:rgba(34,197,94,.18);
+  --p-fg:#86efac;
+  --a-bg:rgba(239,68,68,.18);
+  --a-fg:#fca5a5;
+  --frozen:#141926;
+  --row-alt:#161d2c;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.3);
+  --shadow:0 12px 32px rgba(0,0,0,.4);
+  --shadow-lg:0 24px 64px rgba(0,0,0,.55);
+}
+.dark .shell{background:linear-gradient(135deg,#0b0f1a 0%,#111827 42%,#0f172a 100%);}
+.dark .ibar{background:rgba(20,25,38,.88);border-color:#2a3146;}
+.dark .topbar{background:rgba(20,25,38,.78);border-color:#2a3146;}
+.dark .subbar{background:rgba(20,25,38,.78);border-color:#2a3146;}
+.dark .searchbar{background:rgba(20,25,38,.94);border-color:#2a3146;}
+.dark .search-inp{background:#1a2030;border-color:#2a3146;color:#e2e8f0;}
+.dark .search-clear{background:#1a2030;border-color:#2a3146;color:#94a3b8;}
+.dark .ibar-inp{background:#1a2030;border-color:#2a3146;color:#e2e8f0;}
+.dark .ibar-toggle{background:#1a2030;border-color:#2a3146;color:#94a3b8;}
+.dark .inp{background:#1a2030;border-color:#2a3146;color:#e2e8f0;}
+.dark .btn-ghost{background:#1a2030;border-color:#2a3146;color:#cbd5e1;}
+.dark .btn-ghost:hover{background:#1e2538;border-color:#3b4563;color:#e2e8f0;}
+.dark .sh-outer{background:#141926;border-color:#2a3146;}
+.dark .sh-scroll{background:#141926;}
+.dark .sh-scroll::-webkit-scrollbar-track{background:#141926;}
+.dark .sh-scroll::-webkit-scrollbar-thumb{background:#3b4563;border-color:#141926;}
+.dark .dr td{border-color:#1e2538;background:#141926;}
+.dark .dr:nth-child(even) td{background:#161d2c;}
+.dark .dr:nth-child(odd) td{background:#141926;}
+.dark .dr:hover td{background:#1e2840!important;}
+.dark .tdr{background:#111827!important;color:#94a3b8;border-color:#2a3146!important;}
+.dark .dr:hover .tdr{background:#1a2542!important;}
+.dark .tds{background:#111827!important;border-color:#2a3146!important;}
+.dark .dr:hover .tds{background:#1a2542!important;}
+.dark .sinp{color:#e2e8f0;}
+.dark .sinp:focus{background:#1a2030;box-shadow:inset 0 0 0 2px #818cf8;}
+.dark .tdn{background:#111827!important;border-color:#2a3146!important;}
+.dark .dr:hover .tdn{background:#1a2542!important;}
+.dark .ninp{color:#e2e8f0;}
+.dark .ninp:focus{background:#1a2030;box-shadow:inset 0 0 0 2px #818cf8;}
+.dark .tdt{background:#1a1a2e!important;border-color:#2a2040!important;color:#fbbf24;}
+.dark .dr:hover .tdt{background:#201e3a!important;}
+.dark .tdw{background:#1a1530!important;border-color:#2a2050!important;color:#a78bfa;}
+.dark .ainp{color:#e2e8f0;}
+.dark .ainp.ip{background:rgba(34,197,94,.18)!important;color:#86efac;}
+.dark .ainp.ia{background:rgba(239,68,68,.18)!important;color:#fca5a5;}
+.dark .ainp:focus{background:#1a2030!important;box-shadow:inset 0 0 0 2px #38bdf8;}
+.dark .minp{color:#e2e8f0;}
+.dark .minp:focus{background:#1a2030!important;box-shadow:inset 0 0 0 2px #a78bfa;}
+.dark .minp.full{color:#86efac;background:rgba(34,197,94,.18)!important;}
+.dark .minp.good{color:#93c5fd;background:rgba(59,130,246,.15)!important;}
+.dark .minp.low-m{color:#fca5a5;background:rgba(239,68,68,.15)!important;}
+.dark .minp.absent-m{color:#64748b;background:rgba(100,116,139,.12)!important;}
+.dark .empty{background:#141926;color:#64748b;}
+.dark .no-class{background:rgba(20,25,38,.75);border-color:#2a3146;color:#64748b;}
+.dark .mbg{background:rgba(0,0,0,.7);}
+.dark .modal{background:#1a2030;border-color:#2a3146;color:#e2e8f0;}
+.dark .modal h2{color:#f1f5f9;}
+.dark .modal-sub{color:#8892a8;}
+.dark .mi{background:#111827;border-color:#2a3146;color:#e2e8f0;}
+.dark .mi:focus{border-color:#818cf8;}
+.dark .mbtn-c{background:#111827;border-color:#2a3146;color:#94a3b8;}
+.dark .mbtn-c:hover{background:#1e2538;color:#e2e8f0;}
+.dark .type-opt{background:#111827;border-color:#2a3146;}
+.dark .type-opt:hover{background:#1a2030;border-color:#3b4563;}
+.dark .type-opt-label{color:#e2e8f0;}
+.dark .type-opt-desc{color:#64748b;}
+.dark .drop-zone{background:#111827;border-color:#3b4563;}
+.dark .drop-zone:hover,.dark .drop-zone.drag-over{background:rgba(99,102,241,.1);border-color:#818cf8;}
+.dark .drop-zone-text{color:#cbd5e1;}
+.dark .import-preview{background:#111827;border-color:#2a3146;}
+.dark .import-preview-row{border-color:#2a3146;}
+.dark .ipr-name{color:#e2e8f0;}
+.dark .cls-pick-item{background:#111827;border-color:#2a3146;}
+.dark .cls-pick-item:hover{background:#1a2030;border-color:#3b4563;}
+.dark .cls-pick-item.selected{background:rgba(99,102,241,.12);border-color:#818cf8;}
+.dark .cls-pick-name{color:#f1f5f9;}
+.dark .cls-pick-sub{color:#64748b;}
+.dark .dr.low-att td{background:rgba(245,158,11,.1)!important;}
+.dark .dr.low-att:hover td{background:rgba(245,158,11,.16)!important;}
+.dark .dr.low-att .tdr,.dark .dr.low-att .tds{background:rgba(245,158,11,.12)!important;color:#fbbf24!important;}
+.dark .dr.low-att .tdn{background:rgba(245,158,11,.12)!important;border-right-color:#f59e0b!important;}
+.dark .dr.low-att .tdt{background:rgba(245,158,11,.08)!important;}
+/* dark mode toggle */
+.dm-toggle{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(148,163,184,.18);color:#94a3b8;cursor:pointer;font-family:var(--mono);font-size:.68rem;font-weight:800;padding:7px 11px;border-radius:999px;transition:all .15s;letter-spacing:.04em;}
+.dm-toggle:hover{background:rgba(255,255,255,.1);color:#e2e8f0;border-color:rgba(148,163,184,.32);}
+/* undo/redo */
+.undo-bar{display:flex;align-items:center;gap:4px;margin-left:auto;}
+.undo-btn{background:#fff;border:1px solid var(--border);color:#475569;cursor:pointer;font-size:.88rem;width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0;box-shadow:var(--shadow-sm);}
+.undo-btn:hover:not(:disabled){border-color:#818cf8;color:#4f46e5;background:#eef2ff;transform:translateY(-1px);}
+.undo-btn:disabled{opacity:.3;cursor:not-allowed;}
+.dark .undo-btn{background:#1a2030;border-color:#2a3146;color:#94a3b8;}
+.dark .undo-btn:hover:not(:disabled){background:#1e2538;border-color:#818cf8;color:#818cf8;}
+/* warning badge */
+.warn-badge{display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#78350f;font-family:var(--mono);font-size:.5rem;font-weight:900;padding:2px 6px;border-radius:999px;margin-left:6px;vertical-align:middle;letter-spacing:.03em;white-space:nowrap;}
+.dark .warn-badge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fffbeb;}
+/* grade badge */
+.grade-badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:.58rem;font-weight:900;padding:2px 7px;border-radius:999px;margin-left:6px;letter-spacing:.03em;}
+.grade-a{background:#dcfce7;color:#166534;}.dark .grade-a{background:rgba(34,197,94,.18);color:#86efac;}
+.grade-b{background:#dbeafe;color:#1e40af;}.dark .grade-b{background:rgba(59,130,246,.15);color:#93c5fd;}
+.grade-c{background:#fef3c7;color:#92400e;}.dark .grade-c{background:rgba(245,158,11,.15);color:#fde68a;}
+.grade-d{background:#fed7aa;color:#9a3412;}.dark .grade-d{background:rgba(249,115,22,.15);color:#fdba74;}
+.grade-f{background:#fee2e2;color:#991b1b;}.dark .grade-f{background:rgba(239,68,68,.15);color:#fca5a5;}
+/* grading modal */
+.grade-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);}
+.grade-row:last-child{border-bottom:none;}
+.grade-lbl-inp{width:60px;font-family:var(--mono);font-size:.82rem;font-weight:800;text-align:center;background:#fff;border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:10px;outline:none;}
+.grade-lbl-inp:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(99,102,241,.14);}
+.dark .grade-lbl-inp{background:#111827;border-color:#2a3146;color:#e2e8f0;}
+.grade-min-inp{width:70px;font-family:var(--mono);font-size:.82rem;text-align:center;background:#fff;border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:10px;outline:none;}
+.grade-min-inp:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(99,102,241,.14);}
+.dark .grade-min-inp{background:#111827;border-color:#2a3146;color:#e2e8f0;}
+.grade-del{background:none;border:none;color:#dc2626;cursor:pointer;font-size:.9rem;padding:2px 6px;border-radius:999px;}
+.grade-del:hover{background:rgba(239,68,68,.1);}
+.grade-add-btn{font-family:var(--mono);font-size:.72rem;font-weight:800;background:transparent;border:1px dashed var(--border);color:var(--muted);padding:8px 14px;border-radius:12px;cursor:pointer;transition:all .15s;margin-top:8px;width:100%;}
+.grade-add-btn:hover{border-color:#818cf8;color:var(--accent);background:var(--accent-soft);}
+/* weight error */
+.weight-error{font-family:var(--mono);font-size:.66rem;color:#f87171;font-weight:800;padding:6px 12px;background:rgba(239,68,68,.08);border:1px solid rgba(248,113,113,.22);border-radius:10px;margin-top:4px;}
+.dark .weight-error{background:rgba(239,68,68,.12);border-color:rgba(248,113,113,.18);}
 .shell{
   display:flex;
   height:100vh;
@@ -212,7 +373,7 @@ button:disabled{cursor:not-allowed;}
 .save-badge.saved{color:#86efac;}.save-badge.saving{color:#fde68a;}
 
 /* main */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:transparent;padding:18px 18px 18px 0;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:transparent;padding:10px 14px 10px 0;min-height:0;}
 .no-class{
   display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;
   font-family:var(--sans);color:var(--muted);font-size:.95rem;background:rgba(255,255,255,.75);
@@ -232,20 +393,24 @@ button:disabled{cursor:not-allowed;}
 }
 .ibar.marks-mode{border-top:4px solid var(--purple);} 
 .ibar:not(.marks-mode){border-top:4px solid var(--accent);} 
-.ibar-row{display:flex;align-items:flex-end;gap:13px;padding:16px 18px 14px;flex-wrap:wrap;}
-.ibar-f{display:flex;flex-direction:column;gap:6px;}
+.ibar-row{display:flex;align-items:flex-end;gap:10px;padding:9px 16px;flex-wrap:wrap;}
+.ibar-f{display:flex;flex-direction:column;gap:3px;}
 .ibar-lbl{font-family:var(--mono);font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;}
-.ibar-inp{font-family:var(--sans);font-size:.88rem;font-weight:700;color:var(--text);background:#fff;border:1px solid var(--border);outline:none;border-radius:12px;padding:9px 11px;transition:all .15s;box-shadow:0 1px 0 rgba(15,23,42,.03);}
+.ibar-inp{font-family:var(--sans);font-size:.84rem;font-weight:700;color:var(--text);background:#fff;border:1px solid var(--border);outline:none;border-radius:10px;padding:6px 10px;transition:all .15s;box-shadow:0 1px 0 rgba(15,23,42,.03);}
 .ibar-inp:focus{border-color:#818cf8;box-shadow:0 0 0 4px rgba(99,102,241,.14);}
 .ibar-inp::placeholder{color:#cbd5e1;font-weight:500;}
 .ibar-inp.w1{min-width:240px;}.ibar-inp.w2{min-width:170px;}.ibar-inp.w3{min-width:130px;}
 .mode-pill{font-family:var(--mono);font-size:.66rem;font-weight:900;padding:8px 12px;border-radius:999px;letter-spacing:.08em;align-self:center;flex-shrink:0;}
 .mode-pill.att{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;}
 .mode-pill.marks{background:#f3e8ff;color:#6d28d9;border:1px solid #ddd6fe;}
+.ibar-collapsed{display:flex;align-items:center;gap:12px;padding:8px 16px;}
+.ibar-summary{flex:1;min-width:0;font-family:var(--sans);font-size:.82rem;font-weight:700;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ibar-toggle{flex-shrink:0;font-family:var(--mono);font-size:.64rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#fff;border:1px solid var(--border);color:#475569;cursor:pointer;padding:6px 11px;border-radius:999px;transition:all .15s;box-shadow:var(--shadow-sm);align-self:center;}
+.ibar-toggle:hover{border-color:#818cf8;color:#4f46e5;background:#eef2ff;}
 
 /* topbar */
-.topbar{background:rgba(255,255,255,.72);display:flex;align-items:center;gap:9px;padding:12px 18px;flex-shrink:0;flex-wrap:wrap;border-left:1px solid rgba(226,232,240,.9);border-right:1px solid rgba(226,232,240,.9);}
-.btn{font-family:var(--sans);font-size:.82rem;font-weight:800;border:none;cursor:pointer;border-radius:12px;padding:9px 14px;transition:all .15s ease;white-space:nowrap;letter-spacing:.01em;box-shadow:var(--shadow-sm);}
+.topbar{background:rgba(255,255,255,.72);display:flex;align-items:center;gap:9px;padding:7px 16px;flex-shrink:0;flex-wrap:wrap;border-left:1px solid rgba(226,232,240,.9);border-right:1px solid rgba(226,232,240,.9);}
+.btn{font-family:var(--sans);font-size:.82rem;font-weight:800;border:none;cursor:pointer;border-radius:11px;padding:7px 13px;transition:all .15s ease;white-space:nowrap;letter-spacing:.01em;box-shadow:var(--shadow-sm);}
 .btn:hover{transform:translateY(-1px);}
 .btn-ghost{background:#fff;border:1px solid var(--border);color:#475569;}
 .btn-ghost:hover{border-color:#cbd5e1;color:#0f172a;background:#f8fafc;box-shadow:0 8px 20px rgba(15,23,42,.08);}
@@ -263,18 +428,18 @@ button:disabled{cursor:not-allowed;}
 .btn-teal:hover{box-shadow:0 12px 24px rgba(13,148,136,.22);}
 
 /* subbar */
-.subbar{background:rgba(255,255,255,.78);border-left:1px solid rgba(226,232,240,.9);border-right:1px solid rgba(226,232,240,.9);border-top:1px solid rgba(226,232,240,.75);display:flex;align-items:center;gap:10px;padding:12px 18px;flex-shrink:0;flex-wrap:wrap;}
+.subbar{background:rgba(255,255,255,.78);border-left:1px solid rgba(226,232,240,.9);border-right:1px solid rgba(226,232,240,.9);border-top:1px solid rgba(226,232,240,.75);display:flex;align-items:center;gap:10px;padding:7px 16px;flex-shrink:0;flex-wrap:wrap;}
 .slabel{font-family:var(--mono);font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;font-weight:800;}
-.inp{font-family:var(--sans);font-size:.86rem;background:#fff;border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:12px;outline:none;transition:all .15s;box-shadow:var(--shadow-sm);}
+.inp{font-family:var(--sans);font-size:.86rem;background:#fff;border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:10px;outline:none;transition:all .15s;box-shadow:var(--shadow-sm);}
 .inp:focus{border-color:#818cf8;box-shadow:0 0 0 4px rgba(99,102,241,.14);}
 .inp::placeholder{color:#94a3b8;}
 .inp-r{width:130px;}.inp-s{width:145px;}.inp-n{width:260px;}.inp-d{width:150px;}
 .sdiv{width:1px;height:28px;background:var(--border);margin:0 3px;}
 
 /* searchbar */
-.searchbar{background:rgba(248,250,252,.94);border-left:1px solid rgba(226,232,240,.9);border-right:1px solid rgba(226,232,240,.9);border-top:1px solid rgba(226,232,240,.75);display:flex;align-items:center;gap:11px;padding:11px 18px;flex-shrink:0;}
+.searchbar{background:rgba(248,250,252,.94);border-left:1px solid rgba(226,232,240,.9);border-right:1px solid rgba(226,232,240,.9);border-top:1px solid rgba(226,232,240,.75);display:flex;align-items:center;gap:11px;padding:7px 16px;flex-shrink:0;}
 .search-icon{font-size:1rem;color:#64748b;flex-shrink:0;}
-.search-inp{flex:1;font-family:var(--sans);font-size:.9rem;background:#fff;border:1px solid var(--border);outline:none;color:var(--text);min-width:0;padding:10px 12px;border-radius:999px;box-shadow:var(--shadow-sm);}
+.search-inp{flex:1;font-family:var(--sans);font-size:.9rem;background:#fff;border:1px solid var(--border);outline:none;color:var(--text);min-width:0;padding:7px 12px;border-radius:999px;box-shadow:var(--shadow-sm);}
 .search-inp:focus{border-color:#818cf8;box-shadow:0 0 0 4px rgba(99,102,241,.14);}
 .search-inp::placeholder{color:#94a3b8;}
 .search-clear{font-family:var(--sans);font-size:.78rem;color:#64748b;background:#fff;border:1px solid var(--border);cursor:pointer;padding:7px 10px;border-radius:999px;font-weight:700;}
@@ -282,8 +447,8 @@ button:disabled{cursor:not-allowed;}
 .search-count{font-family:var(--mono);font-size:.68rem;color:var(--muted);white-space:nowrap;background:#fff;border:1px solid var(--border);padding:7px 10px;border-radius:999px;}
 
 /* statsbar */
-.statsbar{background:#0f172a;display:flex;align-items:center;gap:10px;padding:10px 18px;flex-shrink:0;font-family:var(--mono);font-size:.72rem;flex-wrap:wrap;border-left:1px solid #0f172a;border-right:1px solid #0f172a;}
-.stat{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(148,163,184,.14);padding:6px 10px;border-radius:999px;}
+.statsbar{background:#0f172a;display:flex;align-items:center;gap:10px;padding:6px 16px;flex-shrink:0;font-family:var(--mono);font-size:.72rem;flex-wrap:wrap;border-left:1px solid #0f172a;border-right:1px solid #0f172a;}
+.stat{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(148,163,184,.14);padding:4px 10px;border-radius:999px;}
 .slbl{color:#94a3b8;}.sv{font-weight:900;}
 .sv.g{color:#86efac;}.sv.r{color:#fca5a5;}.sv.y{color:#fde68a;}.sv.am{color:#fdba74;}.sv.pu{color:#c4b5fd;}
 .hint{margin-left:auto;font-size:.62rem;color:#64748b;}
@@ -318,7 +483,7 @@ button:disabled{cursor:not-allowed;}
 .chr th{
   background:#111827;color:#cbd5e1;font-family:var(--mono);font-size:.63rem;font-weight:800;
   text-transform:uppercase;letter-spacing:.055em;border-right:1px solid rgba(148,163,184,.18);
-  border-bottom:1px solid rgba(148,163,184,.22);padding:0 8px;height:48px;vertical-align:middle;
+  border-bottom:1px solid rgba(148,163,184,.22);padding:0 8px;height:38px;vertical-align:middle;
   position:sticky;top:0;z-index:10;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;
 }
 .chr th.fr{position:sticky;left:0;z-index:22;background:#0f172a;text-align:center;width:var(--roll-w);min-width:var(--roll-w);max-width:var(--roll-w);}
@@ -338,11 +503,11 @@ button:disabled{cursor:not-allowed;}
 .xbtn:hover{transform:scale(1.08);}
 
 /* data rows */
-.dr{height:42px;}
+.dr{height:34px;}
 .dr:nth-child(even) td{background:var(--row-alt);}
 .dr:nth-child(odd) td{background:var(--surface);}
 .dr:hover td{background:#eef2ff!important;}
-.dr td{border-right:1px solid #edf2f7;border-bottom:1px solid #edf2f7;padding:0;height:42px;vertical-align:middle;transition:background .12s;}
+.dr td{border-right:1px solid #edf2f7;border-bottom:1px solid #edf2f7;padding:0;height:34px;vertical-align:middle;transition:background .12s;}
 
 /* low-att highlight */
 .dr.low-att td{background:#fffbeb!important;}
@@ -353,39 +518,39 @@ button:disabled{cursor:not-allowed;}
 .low-badge{display:inline-block;background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;font-family:var(--mono);font-size:.53rem;font-weight:900;padding:3px 6px;border-radius:999px;margin-left:7px;vertical-align:middle;letter-spacing:.04em;}
 
 /* frozen roll */
-.tdr{position:sticky;left:0;z-index:5;background:var(--frozen)!important;border-right:1px solid var(--border)!important;font-family:var(--mono);font-size:.75rem;color:#64748b;text-align:center;width:var(--roll-w);min-width:var(--roll-w);max-width:var(--roll-w);padding:0 6px;height:42px;line-height:42px;font-weight:700;}
+.tdr{position:sticky;left:0;z-index:5;background:var(--frozen)!important;border-right:1px solid var(--border)!important;font-family:var(--mono);font-size:.75rem;color:#64748b;text-align:center;width:var(--roll-w);min-width:var(--roll-w);max-width:var(--roll-w);padding:0 6px;height:34px;line-height:34px;font-weight:700;}
 .dr:hover .tdr{background:#e0e7ff!important;}
 .xrow{background:#fee2e2;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-size:.85rem;width:20px;height:20px;border-radius:999px;padding:0;display:none;line-height:1;margin-left:4px;}
 .dr:hover .xrow{display:inline-flex;align-items:center;justify-content:center;}
 
 /* frozen system id */
-.tds{position:sticky;left:var(--roll-w);z-index:5;background:var(--frozen)!important;border-right:1px solid var(--border)!important;font-family:var(--mono);font-size:.75rem;color:#475569;text-align:center;width:var(--sys-w);min-width:var(--sys-w);max-width:var(--sys-w);padding:0;height:42px;overflow:hidden;}
+.tds{position:sticky;left:var(--roll-w);z-index:5;background:var(--frozen)!important;border-right:1px solid var(--border)!important;font-family:var(--mono);font-size:.75rem;color:#475569;text-align:center;width:var(--sys-w);min-width:var(--sys-w);max-width:var(--sys-w);padding:0;height:34px;overflow:hidden;}
 .dr:hover .tds{background:#e0e7ff!important;}
-.sinp{width:100%;height:42px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.75rem;color:#0f172a;text-align:center;padding:0 8px;display:block;font-weight:600;}
+.sinp{width:100%;height:34px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.75rem;color:#0f172a;text-align:center;padding:0 8px;display:block;font-weight:600;}
 .sinp:focus{background:#fff;box-shadow:inset 0 0 0 2px #818cf8;}
 
 /* frozen name */
-.tdn{position:sticky;left:calc(var(--roll-w) + var(--sys-w));z-index:5;background:var(--frozen)!important;border-right:3px solid var(--accent)!important;width:var(--name-w);min-width:var(--name-w);max-width:var(--name-w);padding:0;height:42px;display:flex;align-items:center;overflow:hidden;}
+.tdn{position:sticky;left:calc(var(--roll-w) + var(--sys-w));z-index:5;background:var(--frozen)!important;border-right:3px solid var(--accent)!important;width:var(--name-w);min-width:var(--name-w);max-width:var(--name-w);padding:0;height:34px;display:flex;align-items:center;overflow:hidden;}
 .tdn.marks-mode{border-right-color:var(--purple)!important;}
 .dr:hover .tdn{background:#e0e7ff!important;}
-.ninp{flex:1;height:42px;min-width:0;background:transparent;border:none;outline:none;font-family:var(--sans);font-size:.9rem;font-weight:700;color:#0f172a;padding:0 12px;display:block;}
+.ninp{flex:1;height:34px;min-width:0;background:transparent;border:none;outline:none;font-family:var(--sans);font-size:.9rem;font-weight:700;color:#0f172a;padding:0 12px;display:block;}
 .ninp:focus{background:#fff;box-shadow:inset 0 0 0 2px #818cf8;}
 
 /* totals / weighted */
-.tdt{text-align:center;font-family:var(--mono);font-size:.76rem;font-weight:900;background:#fff7ed!important;border-left:1px solid #fed7aa!important;width:112px;min-width:112px;max-width:112px;height:42px;color:#9a3412;}
+.tdt{text-align:center;font-family:var(--mono);font-size:.76rem;font-weight:900;background:#fff7ed!important;border-left:1px solid #fed7aa!important;width:112px;min-width:112px;max-width:112px;height:34px;color:#9a3412;}
 .dr:hover .tdt{background:#ffedd5!important;}
-.tdw{text-align:center;font-family:var(--mono);font-size:.76rem;font-weight:900;background:#f5f3ff!important;border-left:1px solid #ddd6fe!important;width:86px;min-width:86px;max-width:86px;height:42px;color:#6d28d9;}
+.tdw{text-align:center;font-family:var(--mono);font-size:.76rem;font-weight:900;background:#f5f3ff!important;border-left:1px solid #ddd6fe!important;width:86px;min-width:86px;max-width:86px;height:34px;color:#6d28d9;}
 .dr:hover .tdw{background:#ede9fe!important;}
 
-.tda{text-align:center;width:${CELL_W}px;min-width:${CELL_W}px;max-width:${CELL_W}px;padding:0;height:42px;}
-.ainp{width:100%;height:42px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.92rem;font-weight:900;text-align:center;text-transform:uppercase;cursor:text;transition:all .12s;display:block;}
+.tda{text-align:center;width:${CELL_W}px;min-width:${CELL_W}px;max-width:${CELL_W}px;padding:0;height:34px;}
+.ainp{width:100%;height:34px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.92rem;font-weight:900;text-align:center;text-transform:uppercase;cursor:text;transition:all .12s;display:block;}
 .ainp.ip{background:#dcfce7!important;color:#166534;}
 .ainp.ia{background:#fee2e2!important;color:#991b1b;}
 .ainp:focus{box-shadow:inset 0 0 0 2px #0ea5e9;position:relative;z-index:2;background:#fff!important;}
 
 /* marks cells */
-.tmc{text-align:center;width:${MARK_W}px;min-width:${MARK_W}px;max-width:${MARK_W}px;padding:0;height:42px;}
-.minp{width:100%;height:42px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.86rem;font-weight:900;text-align:center;cursor:text;color:#0f172a;transition:all .12s;display:block;}
+.tmc{text-align:center;width:${MARK_W}px;min-width:${MARK_W}px;max-width:${MARK_W}px;padding:0;height:34px;}
+.minp{width:100%;height:34px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.86rem;font-weight:900;text-align:center;cursor:text;color:#0f172a;transition:all .12s;display:block;}
 .minp:focus{box-shadow:inset 0 0 0 2px var(--purple);position:relative;z-index:2;background:#fff!important;}
 .minp.full{color:#166534;background:#dcfce7!important;}
 .minp.good{color:#1d4ed8;background:#eff6ff!important;}
@@ -393,7 +558,7 @@ button:disabled{cursor:not-allowed;}
 .minp.absent-m{color:#64748b;background:#f1f5f9!important;}
 
 /* summary row */
-.sr td{background:#0f172a!important;color:#cbd5e1;font-family:var(--mono);font-size:.67rem;border-top:1px solid rgba(148,163,184,.22);border-right:1px solid rgba(148,163,184,.14);border-bottom:none;height:42px;text-align:center;vertical-align:middle;position:sticky;bottom:0;z-index:5;font-weight:800;}
+.sr td{background:#0f172a!important;color:#cbd5e1;font-family:var(--mono);font-size:.67rem;border-top:1px solid rgba(148,163,184,.22);border-right:1px solid rgba(148,163,184,.14);border-bottom:none;height:34px;text-align:center;vertical-align:middle;position:sticky;bottom:0;z-index:5;font-weight:800;}
 .sr td.sfr{position:sticky;left:0;z-index:16;background:#020617!important;color:#64748b;font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;width:var(--roll-w);min-width:var(--roll-w);}
 .sr td.sfs{position:sticky;left:var(--roll-w);z-index:16;background:#020617!important;color:#64748b;font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;width:var(--sys-w);min-width:var(--sys-w);}
 .sr td.sfn{position:sticky;left:calc(var(--roll-w) + var(--sys-w));z-index:16;background:#020617!important;color:#94a3b8;border-right:3px solid var(--accent)!important;text-align:left;padding:0 12px;font-size:.68rem;width:var(--name-w);min-width:var(--name-w);}
@@ -476,10 +641,23 @@ export default function App() {
   const [searchQ,          setSearchQ]          = useState("");
   const [lowAttOnly,       setLowAttOnly]       = useState(false);
   const [showWeighted,     setShowWeighted]     = useState(false);
+  const [infoCollapsed,    setInfoCollapsed]    = useState(false);
   const [draft,            setDraft]            = useState({faculty:"",session:"",teacher:"",subject:"",course:"",type:"attendance"});
   const [assessDraft,      setAssessDraft]      = useState({name:"Quiz 1",outOf:"10",weight:"",type:"quiz"});
   const [importData,       setImportData]       = useState(null); // {rows:[{roll,name}], fileName, warnings:[]}
   const [importDragOver,   setImportDragOver]   = useState(false);
+  const [darkMode,         setDarkMode]         = useState(() => {
+    try { return localStorage.getItem("attendx_dark") === "1"; } catch { return false; }
+  });
+  const [showGradeModal,   setShowGradeModal]   = useState(false);
+  const [gradeDraft,       setGradeDraft]       = useState([]);
+
+  // ── undo / redo ──
+  const undoStack = useRef([]);
+  const redoStack = useRef([]);
+  const [undoLen, setUndoLen] = useState(0);
+  const [redoLen, setRedoLen] = useState(0);
+  const skipHistory = useRef(false);
 
   const nextSid   = useRef(1000);
   const refs      = useRef({});
@@ -528,6 +706,62 @@ export default function App() {
 
   useEffect(() => { setSearchQ(""); setLowAttOnly(false); }, [activeId]);
 
+  // ── Dark mode toggle ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+    try { localStorage.setItem("attendx_dark", darkMode ? "1" : "0"); } catch {}
+  }, [darkMode]);
+
+  // ── Undo / Redo history ───────────────────────────────────────────────────────
+  const pushUndo = useCallback((snapshot) => {
+    undoStack.current.push(snapshot);
+    if (undoStack.current.length > MAX_UNDO) undoStack.current.shift();
+    redoStack.current = [];
+    setUndoLen(undoStack.current.length);
+    setRedoLen(0);
+  }, []);
+
+  const setClassesWithHistory = useCallback((updater) => {
+    setClasses(prev => {
+      const snapshot = JSON.stringify(prev);
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      if (JSON.stringify(next) !== snapshot) {
+        pushUndo(snapshot);
+      }
+      return next;
+    });
+  }, [pushUndo]);
+
+  const undo = useCallback(() => {
+    if (!undoStack.current.length) return;
+    const snapshot = undoStack.current.pop();
+    redoStack.current.push(JSON.stringify(classes));
+    skipHistory.current = true;
+    setClasses(JSON.parse(snapshot));
+    setUndoLen(undoStack.current.length);
+    setRedoLen(redoStack.current.length);
+  }, [classes]);
+
+  const redo = useCallback(() => {
+    if (!redoStack.current.length) return;
+    const snapshot = redoStack.current.pop();
+    undoStack.current.push(JSON.stringify(classes));
+    skipHistory.current = true;
+    setClasses(JSON.parse(snapshot));
+    setUndoLen(undoStack.current.length);
+    setRedoLen(redoStack.current.length);
+  }, [classes]);
+
+  // Ctrl+Z / Ctrl+Y global shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undo, redo]);
+
   // ── derived ───────────────────────────────────────────────────────────────────
   const active      = classes.find(c => c.id === activeId) ?? null;
   const isMarks     = active?.type === "marks";
@@ -573,7 +807,7 @@ export default function App() {
     : [];
 
   const updActive = fn => {
-    if (active) setClasses(cs => cs.map(c => c.id === activeId ? fn(c) : c));
+    if (active) setClassesWithHistory(cs => cs.map(c => c.id === activeId ? fn(c) : c));
   };
 
   // ── create class ─────────────────────────────────────────────────────────────
@@ -583,8 +817,9 @@ export default function App() {
       type: draft.type || "attendance",
       info: { faculty:draft.faculty, session:draft.session, teacher:draft.teacher, subject:draft.subject, course:draft.course },
       students:[], dates:[todayStr()], att:{}, assessments:[], marks:{},
+      grades: [...DEFAULT_GRADES],
     };
-    setClasses(cs => [...cs, cls]);
+    setClassesWithHistory(cs => [...cs, cls]);
     setActiveId(cls.id);
     setShowModal(false);
     setDraft({faculty:"",session:"",teacher:"",subject:"",course:"",type:"attendance"});
@@ -594,7 +829,7 @@ export default function App() {
     e.stopPropagation();
     if (!window.confirm("Delete this class and all its data?")) return;
     const remaining = classes.filter(c => c.id !== id);
-    setClasses(remaining);
+    setClassesWithHistory(remaining);
     if (activeId === id) setActiveId(remaining[0]?.id ?? null);
   };
 
@@ -729,6 +964,13 @@ export default function App() {
     const outOf = parseFloat(assessDraft.outOf) || 10;
     const type  = assessDraft.type || "quiz";
     const weight = parseFloat(assessDraft.weight) || 0;
+    if (weight > 0) {
+      const currentTotal = assessments.reduce((s, a) => s + (parseFloat(a.weight) || 0), 0);
+      if (currentTotal + weight > 100) {
+        alert(`Cannot add: total weight would be ${(currentTotal + weight).toFixed(1)}% (max 100%). Current total is ${currentTotal.toFixed(1)}%.`);
+        return;
+      }
+    }
     updActive(c => ({ ...c, assessments: [...(c.assessments??[]), { id:uid(), name, outOf, type, weight }] }));
     setShowAssessModal(false);
     setAssessDraft({name:"Quiz 1",outOf:"10",weight:"",type:"quiz"});
@@ -745,10 +987,18 @@ export default function App() {
   };
   const saveEditAssess = () => {
     if (!editAssessId) return;
+    const newWeight = parseFloat(assessDraft.weight) || 0;
+    if (newWeight > 0) {
+      const otherTotal = assessments.filter(a => a.id !== editAssessId).reduce((s, a) => s + (parseFloat(a.weight) || 0), 0);
+      if (otherTotal + newWeight > 100) {
+        alert(`Cannot save: total weight would be ${(otherTotal + newWeight).toFixed(1)}% (max 100%). Other assessments total ${otherTotal.toFixed(1)}%.`);
+        return;
+      }
+    }
     updActive(c => ({
       ...c,
       assessments: (c.assessments??[]).map(a => a.id === editAssessId
-        ? { ...a, name: assessDraft.name.trim()||a.name, outOf: parseFloat(assessDraft.outOf)||a.outOf, type: assessDraft.type||a.type, weight: parseFloat(assessDraft.weight)||0 }
+        ? { ...a, name: assessDraft.name.trim()||a.name, outOf: parseFloat(assessDraft.outOf)||a.outOf, type: assessDraft.type||a.type, weight: newWeight }
         : a)
     }));
     setShowEditAssess(false); setEditAssessId(null);
@@ -766,10 +1016,11 @@ export default function App() {
     if(pct>=100)return "full"; if(pct>=60)return "good"; return "low-m";
   };
 
-  // Update weight inline from wbar
   const setAssessWeight = (aid, val) => {
-    const w = val === "" ? 0 : parseFloat(val) || 0;
-    updActive(c => ({ ...c, assessments: (c.assessments??[]).map(a => a.id===aid ? {...a, weight: w} : a) }));
+    const w = val === "" ? 0 : Math.max(0, parseFloat(val) || 0);
+    const otherTotal = assessments.filter(a => a.id !== aid).reduce((s, a) => s + (parseFloat(a.weight) || 0), 0);
+    const clamped = Math.min(w, 100 - otherTotal);
+    updActive(c => ({ ...c, assessments: (c.assessments??[]).map(a => a.id===aid ? {...a, weight: Math.max(0, clamped)} : a) }));
   };
 
   // ── summaries ─────────────────────────────────────────────────────────────────
@@ -826,6 +1077,57 @@ export default function App() {
   const overall = active&&isAtt ? active.students.reduce((acc,s)=>{ sortedDates.forEach(d=>{const v=getCell(active,s.id,d);if(isP(v))acc.p++;else if(isA(v))acc.a++;}); return acc; },{p:0,a:0}) : {p:0,a:0};
   const lowAttCount = lowAttendanceStudents.length;
 
+  // ── Grading helpers ──────────────────────────────────────────────────────────
+  const gradeScale = active?.grades ?? DEFAULT_GRADES;
+  const getGrade = (pct) => {
+    if (pct === null || pct === undefined) return null;
+    const sorted = [...gradeScale].sort((a, b) => b.min - a.min);
+    for (const g of sorted) { if (pct >= g.min) return g.label; }
+    return sorted[sorted.length - 1]?.label ?? "F";
+  };
+  const gradeColorClass = (label) => {
+    if (!label) return "";
+    const l = label.toUpperCase();
+    if (l.startsWith("A")) return "grade-a";
+    if (l.startsWith("B")) return "grade-b";
+    if (l.startsWith("C")) return "grade-c";
+    if (l.startsWith("D")) return "grade-d";
+    return "grade-f";
+  };
+
+  // ── Defaulter warning: how many absences until below threshold ────────────────
+  const absencesUntilDefaulter = (c, sid) => {
+    const sd = [...(c.dates ?? [])].sort();
+    let p = 0, total = 0;
+    sd.forEach(d => { const v = getCell(c, sid, d); if (isP(v)) { p++; total++; } else if (isA(v)) { total++; } });
+    if (!total) return null;
+    const pct = Math.round(p / total * 100);
+    if (pct < DEFAULTER_THRESHOLD) return 0;
+    let extraAbsences = 0;
+    while (true) {
+      extraAbsences++;
+      const newTotal = total + extraAbsences;
+      const newPct = Math.round(p / newTotal * 100);
+      if (newPct < DEFAULTER_THRESHOLD) return extraAbsences;
+      if (extraAbsences > 999) return null;
+    }
+  };
+
+  // ── Grading modal ────────────────────────────────────────────────────────────
+  const openGradeModal = () => {
+    setGradeDraft((active?.grades ?? DEFAULT_GRADES).map(g => ({ ...g })));
+    setShowGradeModal(true);
+  };
+  const saveGrades = () => {
+    const cleaned = gradeDraft
+      .filter(g => g.label.trim())
+      .map(g => ({ label: g.label.trim(), min: Math.max(0, Math.min(100, Number(g.min) || 0)) }))
+      .sort((a, b) => b.min - a.min);
+    if (!cleaned.length) { alert("Add at least one grade."); return; }
+    updActive(c => ({ ...c, grades: cleaned }));
+    setShowGradeModal(false);
+  };
+
   // ── keyboard nav ──────────────────────────────────────────────────────────────
   const navKeyAtt = (e,sid,dIdx) => {
     if(!["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter","Tab"].includes(e.key))return;
@@ -868,18 +1170,21 @@ export default function App() {
   const buildMarksWs = cls => {
     const inf=cls.info; const asm=cls.assessments??[];
     const hasWeights = asm.some(a=>parseFloat(a.weight)>0);
+    const gs = cls.grades ?? DEFAULT_GRADES;
+    const getG = (pct) => { if(pct===null||pct===undefined)return "-"; const sorted=[...gs].sort((a,b)=>b.min-a.min); for(const g of sorted){if(pct>=g.min)return g.label;} return sorted[sorted.length-1]?.label??"F"; };
     const infoRows=[[(inf?.faculty)||""],[`Marks Register (${(inf?.session)||""})`],[`Teacher's Name: ${(inf?.teacher)||""}`],[`Subject: ${(inf?.subject)||""}`],[`Course: ${(inf?.course)||""}`],[]];
-    const outOfRow=["","","","Out Of",...asm.map(a=>a.outOf),"Total %","Weighted %"];
-    const weightRow=["","","","Weight %",...asm.map(a=>a.weight?(a.weight+"%"):"—"),"",""];
-    const hdr=["#","Student ID","System ID","Student Name",...asm.map(a=>`${a.name} (${a.type})`),"Total %","Weighted %"];
-    const rows=(cls.students??[]).map((s,i)=>{ 
-      const sm=stuMarksSum(cls,s.id); 
+    const outOfRow=["","","","Out Of",...asm.map(a=>a.outOf),"Total %","Weighted %","Grade"];
+    const weightRow=["","","","Weight %",...asm.map(a=>a.weight?(a.weight+"%"):"—"),"","",""];
+    const hdr=["#","Student ID","System ID","Student Name",...asm.map(a=>`${a.name} (${a.type})`),"Total %","Weighted %","Grade"];
+    const rows=(cls.students??[]).map((s,i)=>{
+      const sm=stuMarksSum(cls,s.id);
       const wm=hasWeights?stuWeightedSum(cls,s.id):null;
-      return [i+1,s.roll,s.systemId||"",s.name,...asm.map(a=>getMark(cls,s.id,a.id)||""),sm?sm.pct+"%":"-",wm?wm.pct+"%":"-"]; 
+      const gradePct = wm ? wm.pct : (sm ? sm.pct : null);
+      return [i+1,s.roll,s.systemId||"",s.name,...asm.map(a=>getMark(cls,s.id,a.id)||""),sm?sm.pct+"%":"-",wm?wm.pct+"%":"-",getG(gradePct)];
     });
-    const avgRow=["","","","Average",...asm.map(a=>assessColAvg(cls,a.id)??"-"),"",""];
+    const avgRow=["","","","Average",...asm.map(a=>assessColAvg(cls,a.id)??"-"),"","",""];
     const ws=XLSX.utils.aoa_to_sheet([...infoRows,outOfRow,weightRow,hdr,...rows,[],avgRow]);
-    ws["!cols"]=[{wch:4},{wch:12},{wch:14},{wch:28},...asm.map(()=>({wch:14})),{wch:10},{wch:12}];
+    ws["!cols"]=[{wch:4},{wch:12},{wch:14},{wch:28},...asm.map(()=>({wch:14})),{wch:10},{wch:12},{wch:8}];
     return ws;
   };
   const exportAll = () => {
@@ -1041,7 +1346,12 @@ export default function App() {
         {/* ── sidebar ── */}
         <div className="sb">
           <div className="sb-logo">
-            <div className="logo">Attend<span>X</span></div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div className="logo">Attend<span>X</span></div>
+              <button className="dm-toggle" onClick={()=>setDarkMode(v=>!v)} title={darkMode?"Switch to light mode":"Switch to dark mode"}>
+                {darkMode ? "☀ Light" : "🌙 Dark"}
+              </button>
+            </div>
             <div className="logo-sub">Attendance · Marks</div>
           </div>
           <div className="sb-sec"><span>Classes ({classes.length})</span></div>
@@ -1083,15 +1393,26 @@ export default function App() {
 
             {/* info bar */}
             <div className={`ibar${isMarks?" marks-mode":""}`}>
-              <div className="ibar-row">
-                <span className={`mode-pill ${isMarks?"marks":"att"}`}>{isMarks?"📊 MARKS":"✅ ATTENDANCE"}</span>
-                {[["faculty","Faculty / Department","Faculty of Engineering & Computing","w1"],["session","Session","Feb 2026 – Jun 2026","w2"],["teacher","Teacher","Full name","w3"],["subject","Subject","Subject","w3"],["course","Course","BSSE 39 M 1 (B)","w3"]].map(([f,lbl,ph,w])=>(
-                  <div key={f} className="ibar-f" style={{flex:w==="w1"?"2 1 180px":"1 1 120px"}}>
-                    <span className="ibar-lbl">{lbl}</span>
-                    <input className={`ibar-inp ${w}`} placeholder={ph} value={active.info?.[f] ?? ""} onChange={e=>setInfo(f,e.target.value)}/>
-                  </div>
-                ))}
-              </div>
+              {infoCollapsed ? (
+                <div className="ibar-collapsed">
+                  <span className={`mode-pill ${isMarks?"marks":"att"}`}>{isMarks?"📊 MARKS":"✅ ATTENDANCE"}</span>
+                  <span className="ibar-summary">
+                    {[active.info?.faculty, active.info?.course, active.info?.session, active.info?.subject, active.info?.teacher].filter(Boolean).join("  ·  ") || "No class details set"}
+                  </span>
+                  <button className="ibar-toggle" onClick={()=>setInfoCollapsed(false)}>▾ Show details</button>
+                </div>
+              ) : (
+                <div className="ibar-row">
+                  <span className={`mode-pill ${isMarks?"marks":"att"}`}>{isMarks?"📊 MARKS":"✅ ATTENDANCE"}</span>
+                  {[["faculty","Faculty / Department","Faculty of Engineering & Computing","w1"],["session","Session","Feb 2026 – Jun 2026","w2"],["teacher","Teacher","Full name","w3"],["subject","Subject","Subject","w3"],["course","Course","BSSE 39 M 1 (B)","w3"]].map(([f,lbl,ph,w])=>(
+                    <div key={f} className="ibar-f" style={{flex:w==="w1"?"2 1 180px":"1 1 120px"}}>
+                      <span className="ibar-lbl">{lbl}</span>
+                      <input className={`ibar-inp ${w}`} placeholder={ph} value={active.info?.[f] ?? ""} onChange={e=>setInfo(f,e.target.value)}/>
+                    </div>
+                  ))}
+                  <button className="ibar-toggle" onClick={()=>setInfoCollapsed(true)}>▴ Hide</button>
+                </div>
+              )}
             </div>
 
             {/* topbar */}
@@ -1102,24 +1423,17 @@ export default function App() {
                 <button className="btn btn-ghost" onClick={markRestA}>✗ Mark Rest Absent</button>
                 <button className={`btn ${lowAttOnly?"btn-amber":"btn-ghost"}`} onClick={()=>setLowAttOnly(v=>!v)}>⚠ Below 25%</button>
               </>}
-              {isMarks&&<button className="btn btn-ghost" onClick={()=>{if(window.confirm("Clear all marks?"))updActive(c=>({...c,marks:{}}));}}>Clear Marks</button>}
+              {isMarks&&<>
+                <button className="btn btn-ghost" onClick={()=>{if(window.confirm("Clear all marks?"))updActive(c=>({...c,marks:{}}));}}>Clear Marks</button>
+                <button className="btn btn-purple" onClick={openGradeModal}>🎓 Grading Criteria</button>
+              </>}
               {classes.length>1&&<button className="btn btn-amber" onClick={openCopyModal}>⇄ Copy Roster</button>}
-
-                <button
-                className="btn btn-teal"
-                onClick={() => {
-                setImportData(null);
-                setShowImportModal(true);
-                }}
-                  >
-                  ↑ Import from Excel
-                  </button>
-
-                  <div style={{flex:1}}/>
-
-                  <button className="btn btn-accent" onClick={exportOne}>
-                    ↓ Export This Class
-                  </button>
+              <button className="btn btn-teal" onClick={()=>{setImportData(null);setShowImportModal(true);}}>↑ Import from Excel</button>
+              <div className="undo-bar">
+                <button className="undo-btn" disabled={undoLen===0} onClick={undo} title="Undo (Ctrl+Z)">↩</button>
+                <button className="undo-btn" disabled={redoLen===0} onClick={redo} title="Redo (Ctrl+Y)">↪</button>
+              </div>
+              <button className="btn btn-accent" onClick={exportOne}>↓ Export This Class</button>
             </div>
 
             {/* subbar */}
@@ -1184,9 +1498,10 @@ export default function App() {
                     </div>
                   ))}
                 </div>
-                <div className={`wbar-total ${weightsOk?"ok":"warn"}`}>
-                  Σ {totalWeight.toFixed(1)}% {weightsOk?"✓":"≠ 100"}
+                <div className={`wbar-total ${totalWeight>100?"warn":weightsOk?"ok":"warn"}`}>
+                  Σ {totalWeight.toFixed(1)}% {totalWeight>100?"⚠ Over!":weightsOk?"✓":"≠ 100"}
                 </div>
+                {totalWeight>100&&<div className="weight-error">Weights exceed 100% — reduce to proceed</div>}
                 <button
                   className={`wbar-toggle${showWeighted?" on":""}`}
                   onClick={()=>setShowWeighted(v=>!v)}
@@ -1265,7 +1580,11 @@ export default function App() {
                             })}
                             <td className="tdt">
                               {sm
-                                ? <span><span className="sp">{sm.p}P</span>/<span className="sa">{sm.a}A</span> <span style={{color:isLow?"#f59e0b":"#aaa",fontSize:"0.61rem",fontWeight:isLow?700:400}}>({sm.pct}%)</span></span>
+                                ? <span>
+                                    <span className="sp">{sm.p}P</span>/<span className="sa">{sm.a}A</span>{" "}
+                                    <span style={{color:isLow?"#f59e0b":"#aaa",fontSize:"0.61rem",fontWeight:isLow?700:400}}>({sm.pct}%)</span>
+                                    {(() => { const left = absencesUntilDefaulter(active, s.id); return left !== null && left > 0 && left <= 5 ? <span className="warn-badge">{left} left</span> : null; })()}
+                                  </span>
                                 : <span style={{color:"#ccc"}}>—</span>}
                             </td>
                           </tr>
@@ -1345,7 +1664,10 @@ export default function App() {
                             })}
                             <td className="tdt" style={{background:sm?"#f3f0ff":""}}>
                               {sm
-                                ? <span style={{color:"#7c3aed",fontWeight:600}}>{sm.earned}/{sm.total} <span style={{color:"#aaa",fontSize:"0.61rem"}}>({sm.pct}%)</span></span>
+                                ? <span style={{color:"#7c3aed",fontWeight:600}}>
+                                    {sm.earned}/{sm.total} <span style={{color:"#aaa",fontSize:"0.61rem"}}>({sm.pct}%)</span>
+                                    {!weightingOn && (() => { const g = getGrade(sm.pct); return g ? <span className={`grade-badge ${gradeColorClass(g)}`}>{g}</span> : null; })()}
+                                  </span>
                                 : <span style={{color:"#ccc"}}>—</span>}
                             </td>
                             {weightingOn && (
@@ -1354,6 +1676,7 @@ export default function App() {
                                   ? <span style={{color: wm.pct>=90?"#14633a":wm.pct>=60?"#1d4ed8":"#be2c0a", fontWeight:600}}>
                                       {wm.earned}<span style={{color:"#aaa",fontSize:"0.58rem",fontWeight:400}}>/{wm.total}</span>
                                       <span style={{display:"block",fontSize:"0.58rem",color:"#aaa",fontWeight:400}}>{wm.pct}%</span>
+                                      {(() => { const g = getGrade(wm.pct); return g ? <span className={`grade-badge ${gradeColorClass(g)}`}>{g}</span> : null; })()}
                                     </span>
                                   : <span style={{color:"#ccc"}}>—</span>}
                               </td>
@@ -1622,6 +1945,45 @@ export default function App() {
             <div className="mact">
               <button className="mbtn-c" onClick={()=>setShowCopyModal(false)}>Cancel</button>
               <button className="mbtn-blue" onClick={confirmCopyRoster} disabled={!copySourceId} style={{opacity:copySourceId?1:0.4}}>Copy Roster →</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Grading Criteria modal ── */}
+      {showGradeModal&&(
+        <div className="mbg" onClick={()=>setShowGradeModal(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <h2>Grading Criteria</h2>
+            <div className="modal-sub">
+              Define grade labels and minimum weighted percentage required for each.
+              Grades are matched top-down — a student gets the highest grade whose minimum they meet.
+            </div>
+            <div style={{display:"flex",gap:10,padding:"8px 0 6px",fontFamily:"var(--mono)",fontSize:".64rem",color:"var(--muted)",textTransform:"uppercase",letterSpacing:".1em",fontWeight:800}}>
+              <span style={{width:60,textAlign:"center"}}>Grade</span>
+              <span style={{width:70,textAlign:"center"}}>Min %</span>
+              <span style={{flex:1}}>Preview</span>
+            </div>
+            <div style={{maxHeight:320,overflowY:"auto"}}>
+              {gradeDraft.map((g, i) => (
+                <div key={i} className="grade-row">
+                  <input className="grade-lbl-inp" value={g.label} placeholder="A+"
+                    onChange={e => { const d=[...gradeDraft]; d[i]={...d[i],label:e.target.value}; setGradeDraft(d); }}/>
+                  <input className="grade-min-inp" type="number" min="0" max="100" value={g.min}
+                    onChange={e => { const d=[...gradeDraft]; d[i]={...d[i],min:parseFloat(e.target.value)||0}; setGradeDraft(d); }}/>
+                  <span style={{fontFamily:"var(--mono)",fontSize:".68rem",color:"var(--muted)",flex:1}}>
+                    {g.min}% — {i===0?"100%":gradeDraft.filter(x=>x.min>g.min).length?`${Math.min(...gradeDraft.filter(x=>x.min>g.min).map(x=>x.min))-1}%`:"100%"}
+                  </span>
+                  <span className={`grade-badge ${gradeColorClass(g.label)}`} style={{fontSize:".72rem"}}>{g.label||"?"}</span>
+                  <button className="grade-del" onClick={() => { const d=[...gradeDraft]; d.splice(i,1); setGradeDraft(d); }} title="Remove grade">×</button>
+                </div>
+              ))}
+            </div>
+            <button className="grade-add-btn" onClick={() => setGradeDraft(d => [...d, { label: "", min: 0 }])}>+ Add Grade</button>
+            <div className="mact">
+              <button className="mbtn-c" onClick={()=>setShowGradeModal(false)}>Cancel</button>
+              <button className="mbtn-c" onClick={()=>setGradeDraft(DEFAULT_GRADES.map(g=>({...g})))}>Reset to Default</button>
+              <button className="mbtn-purple" onClick={saveGrades}>Save Grades →</button>
             </div>
           </div>
         </div>

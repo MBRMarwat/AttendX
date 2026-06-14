@@ -78,7 +78,6 @@ function createWindow() {
     }
 
     win.loadFile(indexPath)
-    win.webContents.openDevTools({ mode: 'detach' })
   }
 }
 
