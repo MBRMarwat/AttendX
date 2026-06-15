@@ -271,7 +271,7 @@ body{
 .grade-add-btn{font-family:var(--mono);font-size:.72rem;font-weight:800;background:transparent;border:1px dashed var(--border);color:var(--muted);padding:8px 14px;border-radius:12px;cursor:pointer;transition:all .15s;margin-top:8px;width:100%;}
 .grade-add-btn:hover{border-color:#818cf8;color:var(--accent);background:var(--accent-soft);}
 /* weight error */
-.weight-error{font-family:var(--mono);font-size:.66rem;color:#f87171;font-weight:800;padding:6px 12px;background:rgba(239,68,68,.08);border:1px solid rgba(248,113,113,.22);border-radius:10px;margin-top:4px;}
+.weight-error{font-family:var(--mono);font-size:.58rem;color:#f87171;font-weight:800;padding:3px 9px;background:rgba(239,68,68,.08);border:1px solid rgba(248,113,113,.22);border-radius:999px;white-space:nowrap;}
 .dark .weight-error{background:rgba(239,68,68,.12);border-color:rgba(248,113,113,.18);}
 .shell{
   display:flex;
@@ -454,19 +454,19 @@ button:disabled{cursor:not-allowed;}
 .hint{margin-left:auto;font-size:.62rem;color:#64748b;}
 
 /* weight bar */
-.wbar{background:linear-gradient(135deg,#211044,#17072f);border-bottom:1px solid rgba(196,181,253,.18);display:flex;align-items:center;gap:12px;padding:10px 18px;flex-shrink:0;flex-wrap:wrap;}
-.wbar-label{font-family:var(--mono);font-size:.66rem;color:#c4b5fd;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;flex-shrink:0;font-weight:900;}
-.wbar-pills{display:flex;gap:8px;flex-wrap:wrap;flex:1;}
-.wpill{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.08);border:1px solid rgba(196,181,253,.18);border-radius:999px;padding:6px 10px;font-family:var(--mono);font-size:.68rem;}
-.wpill-name{color:#ede9fe;max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.wpill-inp{width:48px;background:rgba(15,23,42,.55);border:1px solid rgba(196,181,253,.22);border-radius:10px;color:#fff;font-family:var(--mono);font-size:.68rem;padding:5px 6px;outline:none;text-align:center;}
-.wpill-inp:focus{border-color:#c4b5fd;box-shadow:0 0 0 3px rgba(196,181,253,.16);}
-.wpill-pct{color:#a78bfa;font-size:.65rem;}
-.wbar-total{font-family:var(--mono);font-size:.7rem;padding:7px 10px;border-radius:999px;white-space:nowrap;font-weight:900;}
+.wbar{background:linear-gradient(135deg,#211044,#17072f);border-bottom:1px solid rgba(196,181,253,.18);display:flex;align-items:center;gap:8px;padding:5px 14px;flex-shrink:0;flex-wrap:wrap;}
+.wbar-label{font-family:var(--mono);font-size:.58rem;color:#c4b5fd;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;flex-shrink:0;font-weight:900;}
+.wbar-pills{display:flex;gap:5px;flex-wrap:wrap;flex:1;}
+.wpill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(196,181,253,.18);border-radius:999px;padding:3px 7px;font-family:var(--mono);font-size:.6rem;}
+.wpill-name{color:#ede9fe;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.wpill-inp{width:38px;background:rgba(15,23,42,.55);border:1px solid rgba(196,181,253,.22);border-radius:8px;color:#fff;font-family:var(--mono);font-size:.6rem;padding:3px 4px;outline:none;text-align:center;}
+.wpill-inp:focus{border-color:#c4b5fd;box-shadow:0 0 0 2px rgba(196,181,253,.16);}
+.wpill-pct{color:#a78bfa;font-size:.58rem;}
+.wbar-total{font-family:var(--mono);font-size:.62rem;padding:4px 8px;border-radius:999px;white-space:nowrap;font-weight:900;}
 .wbar-total.ok{background:rgba(34,197,94,.16);color:#bbf7d0;border:1px solid rgba(187,247,208,.26);}
 .wbar-total.warn{background:rgba(245,158,11,.15);color:#fde68a;border:1px solid rgba(253,230,138,.26);}
-.wbar-mode{font-family:var(--mono);font-size:.66rem;color:#a78bfa;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;font-weight:800;}
-.wbar-toggle{font-family:var(--mono);font-size:.68rem;background:rgba(255,255,255,.08);color:#ddd6fe;border:1px solid rgba(196,181,253,.25);border-radius:999px;padding:7px 12px;cursor:pointer;transition:all .15s;white-space:nowrap;font-weight:800;}
+.wbar-mode{font-family:var(--mono);font-size:.58rem;color:#a78bfa;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;font-weight:800;}
+.wbar-toggle{font-family:var(--mono);font-size:.6rem;background:rgba(255,255,255,.08);color:#ddd6fe;border:1px solid rgba(196,181,253,.25);border-radius:999px;padding:4px 9px;cursor:pointer;transition:all .15s;white-space:nowrap;font-weight:800;}
 .wbar-toggle:hover,.wbar-toggle.on{background:rgba(139,92,246,.26);border-color:#a78bfa;color:#fff;}
 
 /* sheet */
@@ -518,10 +518,15 @@ button:disabled{cursor:not-allowed;}
 .low-badge{display:inline-block;background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;font-family:var(--mono);font-size:.53rem;font-weight:900;padding:3px 6px;border-radius:999px;margin-left:7px;vertical-align:middle;letter-spacing:.04em;}
 
 /* frozen roll */
-.tdr{position:sticky;left:0;z-index:5;background:var(--frozen)!important;border-right:1px solid var(--border)!important;font-family:var(--mono);font-size:.75rem;color:#64748b;text-align:center;width:var(--roll-w);min-width:var(--roll-w);max-width:var(--roll-w);padding:0 6px;height:34px;line-height:34px;font-weight:700;}
+.tdr{position:sticky;left:0;z-index:5;background:var(--frozen)!important;border-right:1px solid var(--border)!important;font-family:var(--mono);font-size:.75rem;color:#64748b;text-align:center;width:var(--roll-w);min-width:var(--roll-w);max-width:var(--roll-w);padding:0;height:34px;line-height:34px;font-weight:700;overflow:hidden;}
 .dr:hover .tdr{background:#e0e7ff!important;}
-.xrow{background:#fee2e2;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-size:.85rem;width:20px;height:20px;border-radius:999px;padding:0;display:none;line-height:1;margin-left:4px;}
+.rinp{flex:1;min-width:0;height:34px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.75rem;color:#0f172a;text-align:center;padding:0 4px;font-weight:700;}
+.rinp:focus{background:#fff;box-shadow:inset 0 0 0 2px #818cf8;}
+.dark .rinp{color:#e2e8f0;}
+.dark .rinp:focus{background:#1a2030;box-shadow:inset 0 0 0 2px #818cf8;}
+.xrow{background:#fee2e2;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-size:.85rem;width:20px;height:20px;border-radius:999px;padding:0;display:none;line-height:1;flex-shrink:0;}
 .dr:hover .xrow{display:inline-flex;align-items:center;justify-content:center;}
+.dark .xrow{background:rgba(239,68,68,.18);border-color:rgba(248,113,113,.3);color:#fca5a5;}
 
 /* frozen system id */
 .tds{position:sticky;left:var(--roll-w);z-index:5;background:var(--frozen)!important;border-right:1px solid var(--border)!important;font-family:var(--mono);font-size:.75rem;color:#475569;text-align:center;width:var(--sys-w);min-width:var(--sys-w);max-width:var(--sys-w);padding:0;height:34px;overflow:hidden;}
@@ -1551,8 +1556,9 @@ export default function App() {
                         return (
                           <tr key={s.id} className={`dr${isLow?" low-att":""}`}>
                             <td className="tdr">
-                              <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3}}>
-                                <span>{s.roll}</span>
+                              <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:2,height:"34px"}}>
+                                <input className="rinp" value={s.roll}
+                                  onChange={e=>updActive(c=>({...c,students:c.students.map(x=>x.id===s.id?{...x,roll:e.target.value}:x)}))}/>
                                 <button className="xrow" onClick={()=>removeStudent(s.id)}>×</button>
                               </span>
                             </td>
@@ -1635,8 +1641,9 @@ export default function App() {
                         return (
                           <tr key={s.id} className="dr">
                             <td className="tdr">
-                              <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3}}>
-                                <span>{s.roll}</span>
+                              <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:2,height:"34px"}}>
+                                <input className="rinp" value={s.roll}
+                                  onChange={e=>updActive(c=>({...c,students:c.students.map(x=>x.id===s.id?{...x,roll:e.target.value}:x)}))}/>
                                 <button className="xrow" onClick={()=>removeStudent(s.id)}>×</button>
                               </span>
                             </td>
