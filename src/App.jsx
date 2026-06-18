@@ -361,6 +361,9 @@ button:disabled{cursor:not-allowed;}
 .ci-sub{font-family:var(--mono);font-size:.64rem;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;}
 .ci-del{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.12);color:#64748b;cursor:pointer;font-size:1rem;width:24px;height:24px;border-radius:999px;line-height:1;transition:all .15s;flex-shrink:0;}
 .ci-del:hover{color:#fecaca;background:rgba(239,68,68,.22);border-color:rgba(248,113,113,.35);}
+.ci-ring{width:42px;height:42px;border-radius:999px;display:grid;place-items:center;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
+.ci-ring span{width:30px;height:30px;border-radius:999px;display:grid;place-items:center;background:#0f172a;color:#e2e8f0;font-family:var(--mono);font-size:.54rem;font-weight:900;letter-spacing:-.04em;}
+.ci-ring.empty span{color:#64748b;}
 .sb-foot{padding:14px 12px 16px;border-top:1px solid rgba(148,163,184,.15);flex-shrink:0;display:flex;flex-direction:column;gap:9px;background:rgba(2,6,23,.22);}
 .add-cls-btn,.exp-all-btn,.def-btn{width:100%;font-family:var(--sans);font-size:.82rem;font-weight:800;border:none;padding:11px 12px;border-radius:13px;cursor:pointer;transition:all .16s ease;letter-spacing:.01em;box-shadow:var(--shadow-sm);}
 .add-cls-btn{background:rgba(255,255,255,.06);border:1px dashed rgba(148,163,184,.36);color:#e2e8f0;}
@@ -503,11 +506,11 @@ button:disabled{cursor:not-allowed;}
 .xbtn:hover{transform:scale(1.08);}
 
 /* data rows */
-.dr{height:34px;}
+.dr{height:44px;}
 .dr:nth-child(even) td{background:var(--row-alt);}
 .dr:nth-child(odd) td{background:var(--surface);}
 .dr:hover td{background:#eef2ff!important;}
-.dr td{border-right:1px solid #edf2f7;border-bottom:1px solid #edf2f7;padding:0;height:34px;vertical-align:middle;transition:background .12s;}
+.dr td{border-right:1px solid #edf2f7;border-bottom:1px solid #edf2f7;padding:0;height:44px;vertical-align:middle;transition:background .12s;}
 
 /* low-att highlight */
 .dr.low-att td{background:#fffbeb!important;}
@@ -520,7 +523,7 @@ button:disabled{cursor:not-allowed;}
 /* frozen roll */
 .tdr{position:sticky;left:0;z-index:5;background:var(--frozen)!important;border-right:1px solid var(--border)!important;font-family:var(--mono);font-size:.75rem;color:#64748b;text-align:center;width:var(--roll-w);min-width:var(--roll-w);max-width:var(--roll-w);padding:0;height:34px;line-height:34px;font-weight:700;overflow:hidden;}
 .dr:hover .tdr{background:#e0e7ff!important;}
-.rinp{flex:1;min-width:0;height:34px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.75rem;color:#0f172a;text-align:center;padding:0 4px;font-weight:700;}
+.rinp{flex:1;min-width:0;height:44px;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:.75rem;color:#0f172a;text-align:center;padding:0 4px;font-weight:700;}
 .rinp:focus{background:#fff;box-shadow:inset 0 0 0 2px #818cf8;}
 .dark .rinp{color:#e2e8f0;}
 .dark .rinp:focus{background:#1a2030;box-shadow:inset 0 0 0 2px #818cf8;}
@@ -535,11 +538,20 @@ button:disabled{cursor:not-allowed;}
 .sinp:focus{background:#fff;box-shadow:inset 0 0 0 2px #818cf8;}
 
 /* frozen name */
-.tdn{position:sticky;left:calc(var(--roll-w) + var(--sys-w));z-index:5;background:var(--frozen)!important;border-right:3px solid var(--accent)!important;width:var(--name-w);min-width:var(--name-w);max-width:var(--name-w);padding:0;height:34px;display:flex;align-items:center;overflow:hidden;}
+.tdn{position:sticky;left:calc(var(--roll-w) + var(--sys-w));z-index:5;background:var(--frozen)!important;border-right:3px solid var(--accent)!important;width:var(--name-w);min-width:var(--name-w);max-width:var(--name-w);padding:0;height:44px;display:flex;align-items:center;overflow:hidden;}
 .tdn.marks-mode{border-right-color:var(--purple)!important;}
 .dr:hover .tdn{background:#e0e7ff!important;}
-.ninp{flex:1;height:34px;min-width:0;background:transparent;border:none;outline:none;font-family:var(--sans);font-size:.9rem;font-weight:700;color:#0f172a;padding:0 12px;display:block;}
+.ninp{flex:1;height:24px;min-width:0;background:transparent;border:none;outline:none;font-family:var(--sans);font-size:.9rem;font-weight:700;color:#0f172a;padding:0 12px;display:block;}
 .ninp:focus{background:#fff;box-shadow:inset 0 0 0 2px #818cf8;}
+.name-stack{width:100%;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px;}
+.name-line{display:flex;align-items:center;min-width:0;}
+.heat-strip{display:flex;gap:3px;padding:0 12px 5px;min-width:0;overflow:hidden;}
+.tdn>.heat-strip{position:absolute;left:12px;right:12px;bottom:4px;padding:0;}
+.heat-dot{width:10px;height:4px;border-radius:999px;background:#cbd5e1;flex:1;max-width:18px;min-width:6px;opacity:.85;}
+.heat-dot.p{background:#22c55e;}
+.heat-dot.a{background:#ef4444;}
+.heat-dot.blank{background:#cbd5e1;opacity:.45;}
+.dark .heat-dot.blank{background:#475569;opacity:.5;}
 
 /* totals / weighted */
 .tdt{text-align:center;font-family:var(--mono);font-size:.76rem;font-weight:900;background:#fff7ed!important;border-left:1px solid #fed7aa!important;width:112px;min-width:112px;max-width:112px;height:34px;color:#9a3412;}
@@ -572,6 +584,45 @@ button:disabled{cursor:not-allowed;}
 .sr td.sfw{background:#25164d!important;color:#ddd6fe;}
 .sp{color:#86efac;font-weight:900;}.sa{color:#fca5a5;font-weight:900;}
 .empty{padding:90px;text-align:center;font-family:var(--sans);font-size:.9rem;color:var(--muted);background:#fff;}
+
+/* command desk */
+.workspace{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:12px;}
+.workspace.no-insights{grid-template-columns:minmax(0,1fr);}
+.workbench{min-width:0;min-height:0;display:flex;flex-direction:column;}
+.insight-drawer{min-height:0;overflow:auto;background:rgba(255,255,255,.88);border:1px solid rgba(226,232,240,.9);border-radius:0 0 22px 22px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:12px;}
+.dark .insight-drawer{background:rgba(20,25,38,.92);border-color:#2a3146;}
+.insight-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.insight-title{font-family:var(--sans);font-size:.95rem;font-weight:900;color:var(--text);letter-spacing:-.02em;}
+.insight-kicker{font-family:var(--mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);font-weight:900;margin-top:2px;}
+.insight-hide{border:1px solid var(--border);background:#fff;color:var(--muted);font-family:var(--mono);font-size:.58rem;font-weight:900;border-radius:999px;padding:5px 8px;cursor:pointer;}
+.dark .insight-hide{background:#1a2030;border-color:#2a3146;color:#94a3b8;}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.metric-card{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:10px;min-width:0;}
+.metric-value{font-family:var(--mono);font-size:1.05rem;font-weight:900;color:var(--text);}
+.metric-label{font-family:var(--mono);font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:800;margin-top:3px;}
+.insight-card{background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:12px;}
+.insight-card-title{font-family:var(--mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:900;margin-bottom:9px;}
+.risk-list{display:flex;flex-direction:column;gap:8px;}
+.risk-item{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--sans);font-size:.78rem;font-weight:800;color:var(--text);}
+.risk-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.risk-pct{font-family:var(--mono);font-size:.68rem;color:#f97316;font-weight:900;}
+.date-chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+.date-chip{font-family:var(--mono);font-size:.62rem;font-weight:900;color:var(--muted);background:#fff;border:1px solid var(--border);border-radius:999px;padding:5px 8px;}
+.dark .date-chip{background:#111827;border-color:#2a3146;}
+.quick-actions{display:grid;grid-template-columns:1fr;gap:8px;}
+.quick-btn{font-family:var(--sans);font-size:.78rem;font-weight:900;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:12px;padding:9px 10px;text-align:left;cursor:pointer;transition:all .15s;}
+.quick-btn:hover{border-color:#818cf8;background:var(--accent-soft);color:var(--accent);}
+.dark .quick-btn{background:#111827;border-color:#2a3146;color:#e2e8f0;}
+.today-toggle{position:relative;overflow:hidden;}
+.today-toggle.on{background:linear-gradient(135deg,#f97316,#f59e0b);color:#fff;}
+.today-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff7ed;border-left:1px solid rgba(226,232,240,.9);border-right:1px solid rgba(226,232,240,.9);border-top:1px solid #fed7aa;padding:8px 16px;font-family:var(--mono);font-size:.68rem;font-weight:900;color:#9a3412;}
+.dark .today-banner{background:rgba(249,115,22,.12);border-color:rgba(251,146,60,.22);color:#fdba74;}
+.insight-empty{padding:8px;text-align:center;color:var(--muted);font-family:var(--sans);font-size:.9rem;}
+
+@media (max-width:1100px){
+  .workspace{grid-template-columns:minmax(0,1fr);}
+  .insight-drawer{display:none;}
+}
 
 /* modals */
 .mbg{position:fixed;inset:0;background:rgba(15,23,42,.64);backdrop-filter:blur(10px);z-index:100;display:flex;align-items:center;justify-content:center;padding:18px;}
@@ -645,8 +696,10 @@ export default function App() {
   const [newDate,          setNewDate]          = useState(todayStr());
   const [searchQ,          setSearchQ]          = useState("");
   const [lowAttOnly,       setLowAttOnly]       = useState(false);
+  const [todayMode,        setTodayMode]        = useState(false);
   const [showWeighted,     setShowWeighted]     = useState(false);
   const [infoCollapsed,    setInfoCollapsed]    = useState(false);
+  const [insightsOpen,     setInsightsOpen]     = useState(true);
   const [draft,            setDraft]            = useState({faculty:"",session:"",teacher:"",subject:"",course:"",type:"attendance"});
   const [assessDraft,      setAssessDraft]      = useState({name:"Quiz 1",outOf:"10",weight:"",type:"quiz"});
   const [importData,       setImportData]       = useState(null); // {rows:[{roll,name}], fileName, warnings:[]}
@@ -709,7 +762,7 @@ export default function App() {
     return () => clearTimeout(saveTimer.current);
   }, [classes, activeId]); // eslint-disable-line
 
-  useEffect(() => { setSearchQ(""); setLowAttOnly(false); }, [activeId]);
+  useEffect(() => { setSearchQ(""); setLowAttOnly(false); setTodayMode(false); }, [activeId]);
 
   // ── Dark mode toggle ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -772,6 +825,8 @@ export default function App() {
   const isMarks     = active?.type === "marks";
   const isAtt       = !isMarks;
   const sortedDates = active && isAtt ? [...(active.dates ?? [])].sort() : [];
+  const todayIso    = todayStr();
+  const visibleDates = todayMode && isAtt ? sortedDates.filter(d => d === todayIso) : sortedDates;
   const assessments = active?.assessments ?? [];
 
   // Safe cell reader must be initialized before attendance summaries are computed.
@@ -960,8 +1015,17 @@ export default function App() {
   const removeDate = d  => updActive(c=>({...c,dates:(c.dates??[]).filter(x=>x!==d),att:Object.fromEntries(Object.entries(c.att??{}).filter(([k])=>!k.endsWith("_"+d)))}));
   const removeStudent = sid => updActive(c=>({...c,students:c.students.filter(s=>s.id!==sid),att:Object.fromEntries(Object.entries(c.att??{}).filter(([k])=>!k.startsWith(sid+"_"))),marks:Object.fromEntries(Object.entries(c.marks??{}).filter(([k])=>!k.startsWith(sid+"_")))}));
   const setCell    = (sid,d,v) => updActive(c=>({...c,att:{...c.att,[`${sid}_${d}`]:norm(v)}}));
-  const markRestP  = () => updActive(c=>{ const a={...c.att}; c.students.forEach(s=>sortedDates.forEach(d=>{const k=`${s.id}_${d}`;if(!a[k])a[k]="P";})); return {...c,att:a}; });
-  const markRestA  = () => updActive(c=>{ const a={...c.att}; c.students.forEach(s=>sortedDates.forEach(d=>{const k=`${s.id}_${d}`;if(!a[k])a[k]="A";})); return {...c,att:a}; });
+  const scopedDates = (c) => todayMode ? [todayIso] : [...(c.dates??[])].sort();
+  const markRestP  = () => updActive(c=>{ const dates=scopedDates(c); const clsDates=todayMode && !(c.dates??[]).includes(todayIso) ? [...(c.dates??[]),todayIso] : c.dates; const a={...c.att}; c.students.forEach(s=>dates.forEach(d=>{const k=`${s.id}_${d}`;if(!a[k])a[k]="P";})); return {...c,dates:clsDates,att:a}; });
+  const markRestA  = () => updActive(c=>{ const dates=scopedDates(c); const clsDates=todayMode && !(c.dates??[]).includes(todayIso) ? [...(c.dates??[]),todayIso] : c.dates; const a={...c.att}; c.students.forEach(s=>dates.forEach(d=>{const k=`${s.id}_${d}`;if(!a[k])a[k]="A";})); return {...c,dates:clsDates,att:a}; });
+  const toggleTodayMode = () => {
+    if (!active || !isAtt) return;
+    if (!todayMode && !(active.dates??[]).includes(todayIso)) {
+      updActive(c => ({ ...c, dates: [...(c.dates??[]), todayIso] }));
+    }
+    setNewDate(todayIso);
+    setTodayMode(v => !v);
+  };
 
   // ── marks ops ─────────────────────────────────────────────────────────────────
   const addAssessment = () => {
@@ -1079,8 +1143,49 @@ export default function App() {
     if(!cnt)return null;
     return (sum/cnt).toFixed(1);
   };
+  const classAttendancePct = (cls) => {
+    if (!cls || cls.type === "marks") return null;
+    let p = 0, a = 0;
+    (cls.students ?? []).forEach(s => {
+      (cls.dates ?? []).forEach(d => {
+        const v = getCell(cls, s.id, d);
+        if (isP(v)) p++;
+        else if (isA(v)) a++;
+      });
+    });
+    const total = p + a;
+    return total ? Math.round((p / total) * 100) : null;
+  };
+  const classMarksPct = (cls) => {
+    if (!cls || cls.type !== "marks" || !(cls.students?.length)) return null;
+    let sum = 0, count = 0;
+    cls.students.forEach(s => {
+      const sm = stuMarksSum(cls, s.id);
+      if (sm) { sum += sm.pct; count++; }
+    });
+    return count ? Math.round(sum / count) : null;
+  };
+  const classHealth = (cls) => {
+    const pct = cls?.type === "marks" ? classMarksPct(cls) : classAttendancePct(cls);
+    const tone = pct === null ? "#475569" : pct >= 75 ? "#22c55e" : pct >= 50 ? "#f59e0b" : "#ef4444";
+    return { pct, tone };
+  };
+  const heatForStudent = (cls, sid) => [...(cls?.dates ?? [])]
+    .sort()
+    .slice(-18)
+    .map(d => {
+      const v = getCell(cls, sid, d);
+      return isP(v) ? "p" : isA(v) ? "a" : "blank";
+    });
   const overall = active&&isAtt ? active.students.reduce((acc,s)=>{ sortedDates.forEach(d=>{const v=getCell(active,s.id,d);if(isP(v))acc.p++;else if(isA(v))acc.a++;}); return acc; },{p:0,a:0}) : {p:0,a:0};
+  const visibleOverall = active&&isAtt ? active.students.reduce((acc,s)=>{ visibleDates.forEach(d=>{const v=getCell(active,s.id,d);if(isP(v))acc.p++;else if(isA(v))acc.a++;}); return acc; },{p:0,a:0}) : {p:0,a:0};
   const lowAttCount = lowAttendanceStudents.length;
+  const overallPct = overall.p + overall.a ? Math.round(overall.p / (overall.p + overall.a) * 100) : null;
+  const visiblePct = visibleOverall.p + visibleOverall.a ? Math.round(visibleOverall.p / (visibleOverall.p + visibleOverall.a) * 100) : null;
+  const recentDates = sortedDates.slice(-5).reverse();
+  const topRisks = [...lowAttendanceStudents]
+    .sort((a, b) => (stuAttSum(active, a.id)?.pct ?? 101) - (stuAttSum(active, b.id)?.pct ?? 101))
+    .slice(0, 5);
 
   // ── Grading helpers ──────────────────────────────────────────────────────────
   const gradeScale = active?.grades ?? DEFAULT_GRADES;
@@ -1141,9 +1246,9 @@ export default function App() {
     let ns=sIdx,nd=dIdx;
     if(e.key==="ArrowDown"||e.key==="Enter")ns=Math.min(sIdx+1,sts.length-1);
     else if(e.key==="ArrowUp")ns=Math.max(sIdx-1,0);
-    else if(e.key==="ArrowRight"||(e.key==="Tab"&&!e.shiftKey))nd=Math.min(dIdx+1,sortedDates.length-1);
+    else if(e.key==="ArrowRight"||(e.key==="Tab"&&!e.shiftKey))nd=Math.min(dIdx+1,visibleDates.length-1);
     else if(e.key==="ArrowLeft"||(e.key==="Tab"&&e.shiftKey))nd=Math.max(dIdx-1,0);
-    refs.current[`att_${sts[ns].id}_${sortedDates[nd]}`]?.focus();
+    refs.current[`att_${sts[ns].id}_${visibleDates[nd]}`]?.focus();
   };
   const navKeyMarks = (e,sid,aIdx) => {
     if(!["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter","Tab"].includes(e.key))return;
@@ -1369,6 +1474,13 @@ export default function App() {
             {classes.map(cls=>(
               <div key={cls.id} className={`ci${cls.id===activeId?" act":""}`} onClick={()=>setActiveId(cls.id)}>
                 <div className="ci-dot" style={{background:cls.color||"#e04e20"}}/>
+                <div
+                  className={`ci-ring${classHealth(cls).pct===null?" empty":""}`}
+                  style={{background:`conic-gradient(${classHealth(cls).tone} ${classHealth(cls).pct ?? 0}%, rgba(148,163,184,.18) 0)`}}
+                  title={classHealth(cls).pct===null?"No data yet":`${classHealth(cls).pct}% health`}
+                >
+                  <span>{classHealth(cls).pct===null?"--":`${classHealth(cls).pct}%`}</span>
+                </div>
                 <div className="ci-info">
                   <div className="ci-name">{cls.info?.subject||"Untitled"}</div>
                   <div className="ci-sub">{cls.info?.course||cls.info?.teacher||"—"}</div>
@@ -1424,6 +1536,7 @@ export default function App() {
             <div className="topbar">
               {isAtt&&<>
                 <button className="btn btn-ghost" onClick={()=>{if(window.confirm("Clear all attendance?"))updActive(c=>({...c,att:{}}));}}>Clear</button>
+                <button className={`btn today-toggle${todayMode?" on":""}`} onClick={toggleTodayMode}>{todayMode?"Today On":"Today Mode"}</button>
                 <button className="btn btn-green" onClick={markRestP}>✓ Mark Rest Present</button>
                 <button className="btn btn-ghost" onClick={markRestA}>✗ Mark Rest Absent</button>
                 <button className={`btn ${lowAttOnly?"btn-amber":"btn-ghost"}`} onClick={()=>setLowAttOnly(v=>!v)}>⚠ Below 25%</button>
@@ -1434,6 +1547,7 @@ export default function App() {
               </>}
               {classes.length>1&&<button className="btn btn-amber" onClick={openCopyModal}>⇄ Copy Roster</button>}
               <button className="btn btn-teal" onClick={()=>{setImportData(null);setShowImportModal(true);}}>↑ Import from Excel</button>
+              <button className="btn btn-ghost" onClick={()=>setInsightsOpen(v=>!v)}>{insightsOpen?"Hide Insights":"Show Insights"}</button>
               <div className="undo-bar">
                 <button className="undo-btn" disabled={undoLen===0} onClick={undo} title="Undo (Ctrl+Z)">↩</button>
                 <button className="undo-btn" disabled={redoLen===0} onClick={redo} title="Redo (Ctrl+Y)">↪</button>
@@ -1484,6 +1598,13 @@ export default function App() {
             </div>
 
             {/* WEIGHT BAR — only for marks mode */}
+            {todayMode && isAtt && (
+              <div className="today-banner">
+                <span>Today Mode: showing {fmtDate(todayIso)} only</span>
+                <span>{visiblePct === null ? "No marks yet" : `${visibleOverall.p} present / ${visibleOverall.a} absent (${visiblePct}%)`}</span>
+              </div>
+            )}
+
             {isMarks && assessments.length > 0 && (
               <div className="wbar">
                 <span className="wbar-label">Weights</span>
@@ -1518,6 +1639,8 @@ export default function App() {
             )}
 
             {/* SPREADSHEET */}
+            <div className={`workspace${insightsOpen ? "" : " no-insights"}`}>
+              <div className="workbench">
             <div className="sh-outer">
               <div className="sh-scroll">
                 {active.students.length===0
@@ -1533,7 +1656,7 @@ export default function App() {
                         <th className="fr">Student ID</th>
                         <th className="fs">System ID</th>
                         <th className="fn">Student Name</th>
-                        {sortedDates.map(d=>{
+                        {visibleDates.map(d=>{
                           const [y,m,day]=d.split("-");
                           const dow=new Date(d).toLocaleDateString("en-US",{weekday:"short"});
                           return (
@@ -1570,8 +1693,11 @@ export default function App() {
                               <input className="ninp" value={s.name}
                                 onChange={e=>updActive(c=>({...c,students:c.students.map(x=>x.id===s.id?{...x,name:e.target.value}:x)}))}/>
                               {isLow&&<span className="low-badge">⚠ LOW</span>}
+                              <div className="heat-strip" title="Recent attendance history">
+                                {heatForStudent(active,s.id).map((h,i)=><span key={i} className={`heat-dot ${h}`}/>)}
+                              </div>
                             </td>
-                            {sortedDates.map((d,dIdx)=>{
+                            {visibleDates.map((d,dIdx)=>{
                               const v=getCell(active,s.id,d);
                               const cl=isP(v)?"ip":isA(v)?"ia":"";
                               const rk=`att_${s.id}_${d}`;
@@ -1601,9 +1727,9 @@ export default function App() {
                       <tr className="sr">
                         <td className="sfr">Σ</td>
                         <td className="sfs"></td>
-                        <td className="sfn">{active.students.length} students · {sortedDates.length} dates</td>
-                        {sortedDates.map(d=>{const{p,a}=dateAttSum(active,d);return <td key={d}><span className="sp">{p}P</span> <span className="sa">{a}A</span></td>;})}
-                        <td className="sft"><span className="sp">{overall.p}P</span>/<span className="sa">{overall.a}A</span></td>
+                        <td className="sfn">{active.students.length} students / {visibleDates.length} shown</td>
+                        {visibleDates.map(d=>{const{p,a}=dateAttSum(active,d);return <td key={d}><span className="sp">{p}P</span> <span className="sa">{a}A</span></td>;})}
+                        <td className="sft"><span className="sp">{visibleOverall.p}P</span>/<span className="sa">{visibleOverall.a}A</span></td>
                       </tr>
                     </tfoot>
                   </table>
@@ -1708,6 +1834,105 @@ export default function App() {
                   </table>
                 )}
               </div>
+            </div>
+              </div>
+
+              {insightsOpen && (
+                <aside className="insight-drawer">
+                  <div className="insight-head">
+                    <div>
+                      <div className="insight-title">Class Insights</div>
+                      <div className="insight-kicker">{isAtt ? "Attendance health" : "Marks overview"}</div>
+                    </div>
+                    <button className="insight-hide" onClick={()=>setInsightsOpen(false)}>Hide</button>
+                  </div>
+
+                  {isAtt ? (
+                    <>
+                      <div className="metric-grid">
+                        <div className="metric-card">
+                          <div className="metric-value">{overallPct === null ? "--" : `${overallPct}%`}</div>
+                          <div className="metric-label">Overall present</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{lowAttCount}</div>
+                          <div className="metric-label">Below 25%</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{visibleDates.length}</div>
+                          <div className="metric-label">{todayMode ? "Today view" : "Dates shown"}</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{overall.p + overall.a}</div>
+                          <div className="metric-label">Marked cells</div>
+                        </div>
+                      </div>
+
+                      <div className="insight-card">
+                        <div className="insight-card-title">Students needing attention</div>
+                        <div className="risk-list">
+                          {topRisks.length ? topRisks.map(s => {
+                            const sm = stuAttSum(active, s.id);
+                            return (
+                              <div key={s.id} className="risk-item">
+                                <span className="risk-name">{s.name}</span>
+                                <span className="risk-pct">{sm?.pct ?? 0}%</span>
+                              </div>
+                            );
+                          }) : <div className="insight-empty">No critical attendance yet.</div>}
+                        </div>
+                      </div>
+
+                      <div className="insight-card">
+                        <div className="insight-card-title">Recent dates</div>
+                        <div className="date-chip-row">
+                          {recentDates.length ? recentDates.map(d => <span key={d} className="date-chip">{fmtDate(d)}</span>) : <span className="date-chip">No dates</span>}
+                        </div>
+                      </div>
+
+                      <div className="insight-card">
+                        <div className="insight-card-title">Quick actions</div>
+                        <div className="quick-actions">
+                          <button className="quick-btn" onClick={toggleTodayMode}>{todayMode ? "Return to full register" : "Open Today mode"}</button>
+                          <button className="quick-btn" onClick={markRestP}>Mark visible rest present</button>
+                          <button className="quick-btn" onClick={()=>setLowAttOnly(v=>!v)}>{lowAttOnly ? "Clear low filter" : "Show low attendance only"}</button>
+                          <button className="quick-btn" onClick={exportOne}>Export this class</button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="metric-grid">
+                        <div className="metric-card">
+                          <div className="metric-value">{assessments.length}</div>
+                          <div className="metric-label">Assessments</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{assessments.reduce((s,a)=>s+a.outOf,0)}</div>
+                          <div className="metric-label">Raw marks</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{totalWeight.toFixed(0)}%</div>
+                          <div className="metric-label">Weight total</div>
+                        </div>
+                        <div className="metric-card">
+                          <div className="metric-value">{classMarksPct(active) === null ? "--" : `${classMarksPct(active)}%`}</div>
+                          <div className="metric-label">Class average</div>
+                        </div>
+                      </div>
+                      <div className="insight-card">
+                        <div className="insight-card-title">Quick actions</div>
+                        <div className="quick-actions">
+                          <button className="quick-btn" onClick={()=>setShowAssessModal(true)}>Add assessment</button>
+                          <button className="quick-btn" onClick={openGradeModal}>Edit grading criteria</button>
+                          <button className="quick-btn" onClick={()=>setShowWeighted(v=>!v)}>{showWeighted ? "Hide weighted total" : "Show weighted total"}</button>
+                          <button className="quick-btn" onClick={exportOne}>Export this class</button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </aside>
+              )}
             </div>
           </>)}
         </div>
