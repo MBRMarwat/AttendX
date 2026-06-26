@@ -722,6 +722,7 @@ export default function App() {
   const initDone  = useRef(false);
   const saveTimer = useRef(null);
   const fileRef   = useRef(null);
+  const marksTemplateFileRef = useRef(null);
   const isElectron = typeof window !== "undefined" && !!window.electronAPI;
 
   // ── LOAD ─────────────────────────────────────────────────────────────────────
@@ -1297,6 +1298,190 @@ export default function App() {
     ws["!cols"]=[{wch:4},{wch:12},{wch:14},{wch:28},...asm.map(()=>({wch:14})),{wch:10},{wch:12},{wch:8}];
     return ws;
   };
+
+  const cleanExportName = (value, fallback) => {
+    const cleaned = String(value || fallback).replace(/[<>:"\/\\|?*\x00-\x1F]/g, "").trim();
+    return (cleaned || fallback).slice(0, 60);
+  };
+
+  const buildMarksTemplateWs = cls => {
+    const inf = cls.info ?? {};
+    const asm = cls.assessments ?? [];
+    const metaRows = [
+      ["AttendX Marks Upload Template"],
+      [`Subject: ${inf.subject || ""}`],
+      [`Course: ${inf.course || ""}`],
+      ["Fill only the assessment cells. Keep student rows, ID columns, and headers unchanged."],
+      []
+    ];
+    const outOfRow = ["", "", "", "", "Out Of", ...asm.map(a => a.outOf)];
+    const weightRow = ["", "", "", "", "Weight %", ...asm.map(a => a.weight ? `${a.weight}%` : "")];
+    const assessmentIdRow = ["", "", "", "", "AttendX Assessment ID", ...asm.map(a => a.id)];
+    const header = ["AttendX Student Key", "#", "Student ID", "System ID", "Student Name", ...asm.map(a => `${a.name} (${a.type})`)];
+    const rows = (cls.students ?? []).map((s, i) => [s.id, i + 1, s.roll || "", s.systemId || "", s.name || "", ...asm.map(() => "")]);
+    const sheetRows = [...metaRows, outOfRow, weightRow, assessmentIdRow, header, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(sheetRows);
+    ws["!cols"] = [
+      { wch: 18, hidden: true },
+      { wch: 4 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 28 },
+      ...asm.map(a => ({ wch: Math.max(14, Math.min(26, String(a.name || "Assessment").length + 6)) }))
+    ];
+    ws["!rows"] = sheetRows.map((_, i) => i === metaRows.length + 2 ? { hidden: true } : {});
+    return ws;
+  };
+
+  const downloadMarksTemplate = () => {
+    if (!active || !isMarks) return;
+    if (!(active.students?.length)) { alert("Add students before downloading a marks template."); return; }
+    if (!(active.assessments?.length)) { alert("Add at least one assessment before downloading a marks template."); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, buildMarksTemplateWs(active), "Marks Template");
+    const fileName = cleanExportName(active.info?.subject || active.info?.course, "marks_template");
+    XLSX.writeFile(wb, `attendx_${fileName}_marks_template.xlsx`);
+  };
+
+  const normalizeTemplateMark = (value) => {
+    if (value === null || value === undefined) return { empty: true };
+    if (typeof value === "number") {
+      if (!Number.isFinite(value)) return { empty: true };
+      return { empty: false, value: Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2))) };
+    }
+    const text = String(value).trim();
+    if (!text || text === "-") return { empty: true };
+    const lower = text.toLowerCase();
+    if (lower === "a" || lower === "absent" || lower === "ab") return { empty: false, value: "A" };
+    const compact = text.replace(/,/g, "");
+    if (!/^\d+(\.\d+)?$/.test(compact)) return { empty: false, error: `Invalid mark "${text}"` };
+    const n = Number(compact);
+    return { empty: false, value: Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2))) };
+  };
+
+  const normalizeTemplateHeader = (value) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s*\([^)]*\)\s*$/, "")
+      .replace(/\s+/g, " ");
+
+  const importMarksTemplateFile = (file) => {
+    if (!file || !active || !isMarks) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        const lowerRows = raw.map(row => row.map(c => String(c).trim().toLowerCase()));
+        const headerRowIdx = lowerRows.findIndex(row =>
+          row.some(c => c === "student name" || c.includes("student name")) &&
+          row.some(c => c === "student id" || c === "attendx student key")
+        );
+
+        if (headerRowIdx < 0) {
+          alert("Could not find the marks template header. Download a fresh template and try again.");
+          return;
+        }
+
+        const header = lowerRows[headerRowIdx];
+        const originalHeader = raw[headerRowIdx] ?? [];
+        const assessmentIdRow = raw[headerRowIdx - 1] ?? [];
+        const keyCol = header.findIndex(c => c === "attendx student key");
+        const rollCol = header.findIndex(c => c === "student id");
+        const systemCol = header.findIndex(c => c === "system id");
+        const nameCol = header.findIndex(c => c === "student name");
+
+        const assessmentById = new Map((active.assessments ?? []).map(a => [String(a.id), a]));
+        const assessmentByHeader = new Map();
+        (active.assessments ?? []).forEach(a => {
+          if (!assessmentByHeader.has(normalizeTemplateHeader(a.name))) {
+            assessmentByHeader.set(normalizeTemplateHeader(a.name), a);
+          }
+          if (!assessmentByHeader.has(normalizeTemplateHeader(`${a.name} (${a.type})`))) {
+            assessmentByHeader.set(normalizeTemplateHeader(`${a.name} (${a.type})`), a);
+          }
+        });
+
+        const assessmentColumns = [];
+        for (let col = 0; col < originalHeader.length; col++) {
+          const id = String(assessmentIdRow[col] ?? "").trim();
+          const byId = id ? assessmentById.get(id) : null;
+          const byHeader = assessmentByHeader.get(normalizeTemplateHeader(originalHeader[col]));
+          const assessment = byId || byHeader;
+          if (assessment) assessmentColumns.push({ col, assessment });
+        }
+
+        if (!assessmentColumns.length) {
+          alert("No matching assessment columns were found in this file.");
+          return;
+        }
+
+        const studentById = new Map((active.students ?? []).map(s => [String(s.id), s]));
+        const studentByRoll = new Map((active.students ?? []).filter(s => s.roll).map(s => [String(s.roll).trim(), s]));
+        const studentBySystem = new Map((active.students ?? []).filter(s => s.systemId).map(s => [String(s.systemId).trim(), s]));
+        const studentByName = new Map((active.students ?? []).filter(s => s.name).map(s => [String(s.name).trim().toLowerCase(), s]));
+        const findStudent = (row) => {
+          const key = keyCol >= 0 ? String(row[keyCol] ?? "").trim() : "";
+          const systemId = systemCol >= 0 ? String(row[systemCol] ?? "").trim() : "";
+          const roll = rollCol >= 0 ? String(row[rollCol] ?? "").trim() : "";
+          const name = nameCol >= 0 ? String(row[nameCol] ?? "").trim().toLowerCase() : "";
+          return (key && studentById.get(key)) ||
+            (systemId && studentBySystem.get(systemId)) ||
+            (roll && studentByRoll.get(roll)) ||
+            (name && studentByName.get(name)) ||
+            null;
+        };
+
+        const marksToSet = {};
+        let filled = 0;
+        let skippedExisting = 0;
+        let invalid = 0;
+        let unmatchedRows = 0;
+
+        for (let r = headerRowIdx + 1; r < raw.length; r++) {
+          const row = raw[r] ?? [];
+          if (!row.some(c => String(c ?? "").trim())) continue;
+          const student = findStudent(row);
+          if (!student) {
+            if (assessmentColumns.some(({ col }) => String(row[col] ?? "").trim())) unmatchedRows++;
+            continue;
+          }
+          assessmentColumns.forEach(({ col, assessment }) => {
+            const parsed = normalizeTemplateMark(row[col]);
+            if (parsed.empty) return;
+            if (parsed.error) { invalid++; return; }
+            const key = `${student.id}_${assessment.id}`;
+            if ((active.marks?.[key] ?? "") !== "") { skippedExisting++; return; }
+            if (marksToSet[key] !== undefined) return;
+            marksToSet[key] = parsed.value;
+            filled++;
+          });
+        }
+
+        if (filled) {
+          updActive(c => ({ ...c, marks: { ...(c.marks ?? {}), ...marksToSet } }));
+        }
+
+        const summary = [`Filled ${filled} blank mark cell${filled === 1 ? "" : "s"} from ${file.name}.`];
+        if (skippedExisting) summary.push(`Skipped ${skippedExisting} cell${skippedExisting === 1 ? "" : "s"} that already had marks in the app.`);
+        if (invalid) summary.push(`Ignored ${invalid} invalid value${invalid === 1 ? "" : "s"}. Use numbers or A.`);
+        if (unmatchedRows) summary.push(`Skipped ${unmatchedRows} row${unmatchedRows === 1 ? "" : "s"} that did not match an existing student.`);
+        alert(summary.join("\n"));
+      } catch(err) {
+        alert("Could not read this marks template. Make sure it is a valid .xlsx, .xls, or .csv file.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleMarksTemplateUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) importMarksTemplateFile(file);
+    e.target.value = "";
+  };
+
   const exportAll = () => {
     if(!classes.length)return;
     const wb=XLSX.utils.book_new(); const used={};
@@ -1451,6 +1636,7 @@ export default function App() {
   return (
     <>
       <style>{STYLE}</style>
+      <input ref={marksTemplateFileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleMarksTemplateUpload}/>
       <div className="shell">
 
         {/* ── sidebar ── */}
@@ -1544,9 +1730,11 @@ export default function App() {
               {isMarks&&<>
                 <button className="btn btn-ghost" onClick={()=>{if(window.confirm("Clear all marks?"))updActive(c=>({...c,marks:{}}));}}>Clear Marks</button>
                 <button className="btn btn-purple" onClick={openGradeModal}>🎓 Grading Criteria</button>
+                <button className="btn btn-blue" onClick={downloadMarksTemplate}>↓ Marks Template</button>
+                <button className="btn btn-teal" onClick={()=>marksTemplateFileRef.current?.click()}>↑ Upload Marks</button>
               </>}
               {classes.length>1&&<button className="btn btn-amber" onClick={openCopyModal}>⇄ Copy Roster</button>}
-              <button className="btn btn-teal" onClick={()=>{setImportData(null);setShowImportModal(true);}}>↑ Import from Excel</button>
+              <button className="btn btn-teal" onClick={()=>{setImportData(null);setShowImportModal(true);}}>↑ Import Students</button>
               <button className="btn btn-ghost" onClick={()=>setInsightsOpen(v=>!v)}>{insightsOpen?"Hide Insights":"Show Insights"}</button>
               <div className="undo-bar">
                 <button className="undo-btn" disabled={undoLen===0} onClick={undo} title="Undo (Ctrl+Z)">↩</button>
@@ -1926,6 +2114,8 @@ export default function App() {
                           <button className="quick-btn" onClick={()=>setShowAssessModal(true)}>Add assessment</button>
                           <button className="quick-btn" onClick={openGradeModal}>Edit grading criteria</button>
                           <button className="quick-btn" onClick={()=>setShowWeighted(v=>!v)}>{showWeighted ? "Hide weighted total" : "Show weighted total"}</button>
+                          <button className="quick-btn" onClick={downloadMarksTemplate}>Download empty template</button>
+                          <button className="quick-btn" onClick={()=>marksTemplateFileRef.current?.click()}>Upload filled template</button>
                           <button className="quick-btn" onClick={exportOne}>Export this class</button>
                         </div>
                       </div>
