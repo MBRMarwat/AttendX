@@ -31,6 +31,7 @@ const CLASS_COLORS=["#e04e20","#2563eb","#16a34a","#9333ea","#ea580c","#0891b2",
 const STORAGE_KEY = "attendx_v3";
 const LOW_ATT_THRESHOLD = 25;
 const DEFAULTER_THRESHOLD = 75;
+const LOW_WEIGHTED_THRESHOLD = 50;
 const MAX_UNDO = 30;
 
 const DEFAULT_GRADES = [
@@ -591,12 +592,16 @@ button:disabled{cursor:not-allowed;}
 .workbench{min-width:0;min-height:0;display:flex;flex-direction:column;}
 .insight-drawer{min-height:0;overflow:auto;background:rgba(255,255,255,.88);border:1px solid rgba(226,232,240,.9);border-radius:0 0 22px 22px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:12px;}
 .dark .insight-drawer{background:rgba(20,25,38,.92);border-color:#2a3146;}
+.insight-drawer.max{position:fixed;inset:12px;z-index:90;max-height:calc(100vh - 24px);border-radius:22px;background:rgba(255,255,255,.98);box-shadow:var(--shadow-lg);padding:18px;}
+.dark .insight-drawer.max{background:rgba(20,25,38,.98);}
 .insight-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .insight-title{font-family:var(--sans);font-size:.95rem;font-weight:900;color:var(--text);letter-spacing:-.02em;}
 .insight-kicker{font-family:var(--mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);font-weight:900;margin-top:2px;}
+.insight-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .insight-hide{border:1px solid var(--border);background:#fff;color:var(--muted);font-family:var(--mono);font-size:.58rem;font-weight:900;border-radius:999px;padding:5px 8px;cursor:pointer;}
 .dark .insight-hide{background:#1a2030;border-color:#2a3146;color:#94a3b8;}
 .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.insight-drawer.max .metric-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
 .metric-card{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:10px;min-width:0;}
 .metric-value{font-family:var(--mono);font-size:1.05rem;font-weight:900;color:var(--text);}
 .metric-label{font-family:var(--mono);font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:800;margin-top:3px;}
@@ -609,10 +614,18 @@ button:disabled{cursor:not-allowed;}
 .date-chip-row{display:flex;flex-wrap:wrap;gap:6px;}
 .date-chip{font-family:var(--mono);font-size:.62rem;font-weight:900;color:var(--muted);background:#fff;border:1px solid var(--border);border-radius:999px;padding:5px 8px;}
 .dark .date-chip{background:#111827;border-color:#2a3146;}
-.quick-actions{display:grid;grid-template-columns:1fr;gap:8px;}
-.quick-btn{font-family:var(--sans);font-size:.78rem;font-weight:900;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:12px;padding:9px 10px;text-align:left;cursor:pointer;transition:all .15s;}
-.quick-btn:hover{border-color:#818cf8;background:var(--accent-soft);color:var(--accent);}
-.dark .quick-btn{background:#111827;border-color:#2a3146;color:#e2e8f0;}
+.insight-student-list{display:flex;flex-direction:column;gap:8px;max-height:236px;overflow:auto;padding-right:2px;}
+.insight-list-head,.insight-student-row{display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:8px;}
+.insight-drawer.max .insight-student-list{max-height:none;}
+.insight-drawer.max .insight-list-head,.insight-drawer.max .insight-student-row{grid-template-columns:120px minmax(0,1fr) 150px;}
+.insight-list-head{font-family:var(--mono);font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:900;padding:0 8px 2px;}
+.insight-student-row{font-family:var(--sans);font-size:.78rem;font-weight:800;color:var(--text);padding:7px 8px;background:#fff;border:1px solid rgba(226,232,240,.9);border-radius:12px;}
+.dark .insight-student-row{background:#111827;border-color:#2a3146;}
+.insight-student-roll{font-family:var(--mono);font-size:.62rem;color:var(--muted);font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.insight-student-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.insight-student-score{font-family:var(--mono);font-size:.68rem;font-weight:900;white-space:nowrap;}
+.insight-student-score.att{color:#f97316;}
+.insight-student-score.marks{color:#dc2626;}
 .today-toggle{position:relative;overflow:hidden;}
 .today-toggle.on{background:linear-gradient(135deg,#f97316,#f59e0b);color:#fff;}
 .today-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff7ed;border-left:1px solid rgba(226,232,240,.9);border-right:1px solid rgba(226,232,240,.9);border-top:1px solid #fed7aa;padding:8px 16px;font-family:var(--mono);font-size:.68rem;font-weight:900;color:#9a3412;}
@@ -622,6 +635,9 @@ button:disabled{cursor:not-allowed;}
 @media (max-width:1100px){
   .workspace{grid-template-columns:minmax(0,1fr);}
   .insight-drawer{display:none;}
+  .insight-drawer.max{display:flex;}
+  .insight-drawer.max .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .insight-drawer.max .insight-list-head,.insight-drawer.max .insight-student-row{grid-template-columns:82px minmax(0,1fr) auto;}
 }
 
 /* modals */
@@ -700,6 +716,7 @@ export default function App() {
   const [showWeighted,     setShowWeighted]     = useState(false);
   const [infoCollapsed,    setInfoCollapsed]    = useState(false);
   const [insightsOpen,     setInsightsOpen]     = useState(true);
+  const [insightsMaximized,setInsightsMaximized]= useState(false);
   const [draft,            setDraft]            = useState({faculty:"",session:"",teacher:"",subject:"",course:"",type:"attendance"});
   const [assessDraft,      setAssessDraft]      = useState({name:"Quiz 1",outOf:"10",weight:"",type:"quiz"});
   const [importData,       setImportData]       = useState(null); // {rows:[{roll,name}], fileName, warnings:[]}
@@ -835,7 +852,8 @@ export default function App() {
 
   // Weight helpers
   const totalWeight = assessments.reduce((s, a) => s + (parseFloat(a.weight) || 0), 0);
-  const weightingOn = showWeighted && isMarks && assessments.some(a => parseFloat(a.weight) > 0);
+  const hasWeightedAssessments = assessments.some(a => parseFloat(a.weight) > 0);
+  const weightingOn = showWeighted && isMarks && hasWeightedAssessments;
   const weightsOk   = Math.abs(totalWeight - 100) < 0.01;
 
   // ── AUTO-FIT ──────────────────────────────────────────────────────────────────
@@ -1187,6 +1205,26 @@ export default function App() {
   const topRisks = [...lowAttendanceStudents]
     .sort((a, b) => (stuAttSum(active, a.id)?.pct ?? 101) - (stuAttSum(active, b.id)?.pct ?? 101))
     .slice(0, 5);
+  const attendanceDefaulterStudents = active && isAtt
+    ? active.students
+        .map(s => ({ student: s, summary: stuAttSum(active, s.id) }))
+        .filter(({ summary }) => summary && summary.pct < DEFAULTER_THRESHOLD)
+        .sort((a, b) =>
+          a.summary.pct - b.summary.pct ||
+          String(a.student.roll ?? "").localeCompare(String(b.student.roll ?? "")) ||
+          String(a.student.name ?? "").localeCompare(String(b.student.name ?? ""))
+        )
+    : [];
+  const lowWeightedStudents = active && isMarks && hasWeightedAssessments
+    ? active.students
+        .map(s => ({ student: s, weighted: stuWeightedSum(active, s.id) }))
+        .filter(({ weighted }) => weighted && weighted.pct < LOW_WEIGHTED_THRESHOLD)
+        .sort((a, b) =>
+          a.weighted.pct - b.weighted.pct ||
+          String(a.student.roll ?? "").localeCompare(String(b.student.roll ?? "")) ||
+          String(a.student.name ?? "").localeCompare(String(b.student.name ?? ""))
+        )
+    : [];
 
   // ── Grading helpers ──────────────────────────────────────────────────────────
   const gradeScale = active?.grades ?? DEFAULT_GRADES;
@@ -1735,7 +1773,15 @@ export default function App() {
               </>}
               {classes.length>1&&<button className="btn btn-amber" onClick={openCopyModal}>⇄ Copy Roster</button>}
               <button className="btn btn-teal" onClick={()=>{setImportData(null);setShowImportModal(true);}}>↑ Import Students</button>
-              <button className="btn btn-ghost" onClick={()=>setInsightsOpen(v=>!v)}>{insightsOpen?"Hide Insights":"Show Insights"}</button>
+              <button
+                className="btn btn-ghost"
+                onClick={()=>{
+                  if (insightsOpen) setInsightsMaximized(false);
+                  setInsightsOpen(v=>!v);
+                }}
+              >
+                {insightsOpen?"Hide Insights":"Show Insights"}
+              </button>
               <div className="undo-bar">
                 <button className="undo-btn" disabled={undoLen===0} onClick={undo} title="Undo (Ctrl+Z)">↩</button>
                 <button className="undo-btn" disabled={redoLen===0} onClick={redo} title="Redo (Ctrl+Y)">↪</button>
@@ -2026,13 +2072,22 @@ export default function App() {
               </div>
 
               {insightsOpen && (
-                <aside className="insight-drawer">
+                <aside className={`insight-drawer${insightsMaximized ? " max" : ""}`}>
                   <div className="insight-head">
                     <div>
                       <div className="insight-title">Class Insights</div>
                       <div className="insight-kicker">{isAtt ? "Attendance health" : "Marks overview"}</div>
                     </div>
-                    <button className="insight-hide" onClick={()=>setInsightsOpen(false)}>Hide</button>
+                    <div className="insight-actions">
+                      <button
+                        className="insight-hide"
+                        onClick={()=>setInsightsMaximized(v=>!v)}
+                        title={insightsMaximized ? "Minimize insights" : "Maximize insights"}
+                      >
+                        {insightsMaximized ? "Minimize" : "Maximize"}
+                      </button>
+                      <button className="insight-hide" onClick={()=>{setInsightsMaximized(false);setInsightsOpen(false);}}>Hide</button>
+                    </div>
                   </div>
 
                   {isAtt ? (
@@ -2043,8 +2098,8 @@ export default function App() {
                           <div className="metric-label">Overall present</div>
                         </div>
                         <div className="metric-card">
-                          <div className="metric-value">{lowAttCount}</div>
-                          <div className="metric-label">Below 25%</div>
+                          <div className="metric-value">{attendanceDefaulterStudents.length}</div>
+                          <div className="metric-label">Below 75%</div>
                         </div>
                         <div className="metric-card">
                           <div className="metric-value">{visibleDates.length}</div>
@@ -2079,13 +2134,23 @@ export default function App() {
                       </div>
 
                       <div className="insight-card">
-                        <div className="insight-card-title">Quick actions</div>
-                        <div className="quick-actions">
-                          <button className="quick-btn" onClick={toggleTodayMode}>{todayMode ? "Return to full register" : "Open Today mode"}</button>
-                          <button className="quick-btn" onClick={markRestP}>Mark visible rest present</button>
-                          <button className="quick-btn" onClick={()=>setLowAttOnly(v=>!v)}>{lowAttOnly ? "Clear low filter" : "Show low attendance only"}</button>
-                          <button className="quick-btn" onClick={exportOne}>Export this class</button>
-                        </div>
+                        <div className="insight-card-title">Below 75% attendance</div>
+                        {attendanceDefaulterStudents.length ? (
+                          <div className="insight-student-list">
+                            <div className="insight-list-head">
+                              <span>Roll No</span>
+                              <span>Name</span>
+                              <span>Attendance</span>
+                            </div>
+                            {attendanceDefaulterStudents.map(({ student, summary }) => (
+                              <div key={student.id} className="insight-student-row">
+                                <span className="insight-student-roll">{student.roll || "N/A"}</span>
+                                <span className="insight-student-name">{student.name}</span>
+                                <span className="insight-student-score att">{summary.pct}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : <div className="insight-empty">No students below 75%.</div>}
                       </div>
                     </>
                   ) : (
@@ -2109,15 +2174,23 @@ export default function App() {
                         </div>
                       </div>
                       <div className="insight-card">
-                        <div className="insight-card-title">Quick actions</div>
-                        <div className="quick-actions">
-                          <button className="quick-btn" onClick={()=>setShowAssessModal(true)}>Add assessment</button>
-                          <button className="quick-btn" onClick={openGradeModal}>Edit grading criteria</button>
-                          <button className="quick-btn" onClick={()=>setShowWeighted(v=>!v)}>{showWeighted ? "Hide weighted total" : "Show weighted total"}</button>
-                          <button className="quick-btn" onClick={downloadMarksTemplate}>Download empty template</button>
-                          <button className="quick-btn" onClick={()=>marksTemplateFileRef.current?.click()}>Upload filled template</button>
-                          <button className="quick-btn" onClick={exportOne}>Export this class</button>
-                        </div>
+                        <div className="insight-card-title">Weighted score below 50</div>
+                        {lowWeightedStudents.length ? (
+                          <div className="insight-student-list">
+                            <div className="insight-list-head">
+                              <span>Roll No</span>
+                              <span>Name</span>
+                              <span>Weighted Score</span>
+                            </div>
+                            {lowWeightedStudents.map(({ student, weighted }) => (
+                              <div key={student.id} className="insight-student-row">
+                                <span className="insight-student-roll">{student.roll || "N/A"}</span>
+                                <span className="insight-student-name">{student.name}</span>
+                                <span className="insight-student-score marks">{weighted.pct}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : <div className="insight-empty">{hasWeightedAssessments ? "No weighted scores below 50." : "No weighted scores yet."}</div>}
                       </div>
                     </>
                   )}
