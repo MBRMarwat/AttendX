@@ -470,8 +470,6 @@ button:disabled{cursor:not-allowed;}
 .wbar-total.ok{background:rgba(34,197,94,.16);color:#bbf7d0;border:1px solid rgba(187,247,208,.26);}
 .wbar-total.warn{background:rgba(245,158,11,.15);color:#fde68a;border:1px solid rgba(253,230,138,.26);}
 .wbar-mode{font-family:var(--mono);font-size:.58rem;color:#a78bfa;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;font-weight:800;}
-.wbar-toggle{font-family:var(--mono);font-size:.6rem;background:rgba(255,255,255,.08);color:#ddd6fe;border:1px solid rgba(196,181,253,.25);border-radius:999px;padding:4px 9px;cursor:pointer;transition:all .15s;white-space:nowrap;font-weight:800;}
-.wbar-toggle:hover,.wbar-toggle.on{background:rgba(139,92,246,.26);border-color:#a78bfa;color:#fff;}
 
 /* sheet */
 .sh-outer{flex:1;overflow:hidden;background:#fff;border-left:1px solid rgba(226,232,240,.9);border-right:1px solid rgba(226,232,240,.9);border-bottom:1px solid rgba(226,232,240,.9);border-radius:0 0 22px 22px;box-shadow:var(--shadow);}
@@ -713,7 +711,6 @@ export default function App() {
   const [searchQ,          setSearchQ]          = useState("");
   const [lowAttOnly,       setLowAttOnly]       = useState(false);
   const [todayMode,        setTodayMode]        = useState(false);
-  const [showWeighted,     setShowWeighted]     = useState(false);
   const [infoCollapsed,    setInfoCollapsed]    = useState(false);
   const [insightsOpen,     setInsightsOpen]     = useState(true);
   const [insightsMaximized,setInsightsMaximized]= useState(false);
@@ -853,7 +850,7 @@ export default function App() {
   // Weight helpers
   const totalWeight = assessments.reduce((s, a) => s + (parseFloat(a.weight) || 0), 0);
   const hasWeightedAssessments = assessments.some(a => parseFloat(a.weight) > 0);
-  const weightingOn = showWeighted && isMarks && hasWeightedAssessments;
+  const weightingOn = false;
   const weightsOk   = Math.abs(totalWeight - 100) < 0.01;
 
   // ── AUTO-FIT ──────────────────────────────────────────────────────────────────
@@ -1176,11 +1173,11 @@ export default function App() {
     return total ? Math.round((p / total) * 100) : null;
   };
   const classMarksPct = (cls) => {
-    if (!cls || cls.type !== "marks" || !(cls.students?.length)) return null;
+    if (!cls || cls.type !== "marks" || !(cls.students?.length) || !(cls.assessments?.some(a => parseFloat(a.weight) > 0))) return null;
     let sum = 0, count = 0;
     cls.students.forEach(s => {
-      const sm = stuMarksSum(cls, s.id);
-      if (sm) { sum += sm.pct; count++; }
+      const wm = stuWeightedSum(cls, s.id);
+      if (wm) { sum += wm.pct; count++; }
     });
     return count ? Math.round(sum / count) : null;
   };
@@ -1322,18 +1319,17 @@ export default function App() {
     const gs = cls.grades ?? DEFAULT_GRADES;
     const getG = (pct) => { if(pct===null||pct===undefined)return "-"; const sorted=[...gs].sort((a,b)=>b.min-a.min); for(const g of sorted){if(pct>=g.min)return g.label;} return sorted[sorted.length-1]?.label??"F"; };
     const infoRows=[[(inf?.faculty)||""],[`Marks Register (${(inf?.session)||""})`],[`Teacher's Name: ${(inf?.teacher)||""}`],[`Subject: ${(inf?.subject)||""}`],[`Course: ${(inf?.course)||""}`],[]];
-    const outOfRow=["","","","Out Of",...asm.map(a=>a.outOf),"Total %","Weighted %","Grade"];
+    const outOfRow=["","","","Out Of",...asm.map(a=>a.outOf),"Weighted %","Grade"];
     const weightRow=["","","","Weight %",...asm.map(a=>a.weight?(a.weight+"%"):"—"),"","",""];
-    const hdr=["#","Student ID","System ID","Student Name",...asm.map(a=>`${a.name} (${a.type})`),"Total %","Weighted %","Grade"];
+    const hdr=["#","Student ID","System ID","Student Name",...asm.map(a=>`${a.name} (${a.type})`),"Weighted %","Grade"];
     const rows=(cls.students??[]).map((s,i)=>{
-      const sm=stuMarksSum(cls,s.id);
       const wm=hasWeights?stuWeightedSum(cls,s.id):null;
-      const gradePct = wm ? wm.pct : (sm ? sm.pct : null);
-      return [i+1,s.roll,s.systemId||"",s.name,...asm.map(a=>getMark(cls,s.id,a.id)||""),sm?sm.pct+"%":"-",wm?wm.pct+"%":"-",getG(gradePct)];
+      const gradePct = wm ? wm.pct : null;
+      return [i+1,s.roll,s.systemId||"",s.name,...asm.map(a=>getMark(cls,s.id,a.id)||""),wm?wm.pct+"%":"-",getG(gradePct)];
     });
-    const avgRow=["","","","Average",...asm.map(a=>assessColAvg(cls,a.id)??"-"),"","",""];
-    const ws=XLSX.utils.aoa_to_sheet([...infoRows,outOfRow,weightRow,hdr,...rows,[],avgRow]);
-    ws["!cols"]=[{wch:4},{wch:12},{wch:14},{wch:28},...asm.map(()=>({wch:14})),{wch:10},{wch:12},{wch:8}];
+    const avgRow=["","","","Average",...asm.map(a=>assessColAvg(cls,a.id)??"-"),"",""];
+    const ws=XLSX.utils.aoa_to_sheet([...infoRows,outOfRow,weightRow.slice(0, hdr.length),hdr,...rows,[],avgRow]);
+    ws["!cols"]=[{wch:4},{wch:12},{wch:14},{wch:28},...asm.map(()=>({wch:14})),{wch:12},{wch:8}];
     return ws;
   };
 
@@ -1660,6 +1656,61 @@ export default function App() {
     XLSX.writeFile(wb,`attendx_${sn||"export"}.xlsx`);
   };
 
+  const exportInsights = () => {
+    if (!active) return;
+    const inf = active.info ?? {};
+    const sn = cleanExportName(inf.subject || inf.course || "class", "class");
+    const wb = XLSX.utils.book_new();
+    const title = isMarks ? "AttendX - Marks Insights" : "AttendX - Attendance Insights";
+    const threshold = isMarks ? `Weighted score below ${LOW_WEIGHTED_THRESHOLD}%` : `Attendance below ${DEFAULTER_THRESHOLD}%`;
+    const metaRows = [
+      [title],
+      [`Generated On: ${new Date().toLocaleDateString()}`],
+      [`Faculty / Department: ${inf.faculty || ""}`],
+      [`Session: ${inf.session || ""}`],
+      [`Teacher: ${inf.teacher || ""}`],
+      [`Subject: ${inf.subject || ""}`],
+      [`Course: ${inf.course || ""}`],
+      [`Threshold: ${threshold}`],
+      []
+    ];
+
+    if (isMarks) {
+      const header = ["#", "Student ID", "System ID", "Student Name", "Weighted Earned", "Weight Total", "Weighted %", "Grade"];
+      const rows = lowWeightedStudents.map(({ student, weighted }, i) => [
+        i + 1,
+        student.roll || "",
+        student.systemId || "",
+        student.name || "",
+        weighted.earned,
+        weighted.total,
+        `${weighted.pct}%`,
+        getGrade(weighted.pct) || ""
+      ]);
+      const body = rows.length ? rows : [["", "", "", "No weighted scores below 50.", "", "", "", ""]];
+      const ws = XLSX.utils.aoa_to_sheet([...metaRows, header, ...body]);
+      ws["!cols"] = [{wch:4},{wch:14},{wch:16},{wch:28},{wch:16},{wch:14},{wch:12},{wch:10}];
+      XLSX.utils.book_append_sheet(wb, ws, "Weighted Below 50");
+    } else {
+      const header = ["#", "Student ID", "System ID", "Student Name", "Present", "Absent", "Attendance %"];
+      const rows = attendanceDefaulterStudents.map(({ student, summary }, i) => [
+        i + 1,
+        student.roll || "",
+        student.systemId || "",
+        student.name || "",
+        summary.p,
+        summary.a,
+        `${summary.pct}%`
+      ]);
+      const body = rows.length ? rows : [["", "", "", "No students below 75% attendance.", "", "", ""]];
+      const ws = XLSX.utils.aoa_to_sheet([...metaRows, header, ...body]);
+      ws["!cols"] = [{wch:4},{wch:14},{wch:16},{wch:28},{wch:10},{wch:10},{wch:14}];
+      XLSX.utils.book_append_sheet(wb, ws, "Attendance Below 75");
+    }
+
+    XLSX.writeFile(wb, `attendx_${sn}_insights.xlsx`);
+  };
+
   // ── render ────────────────────────────────────────────────────────────────────
   const STYLE = makeStyle(rollW, sysW, nameW);
 
@@ -1826,7 +1877,6 @@ export default function App() {
               {isMarks&&<>
                 <div className="stat"><span className="slbl">Assessments:</span><span className="sv pu">{assessments.length}</span></div>
                 <div className="stat"><span className="slbl">Total Marks:</span><span className="sv pu">{assessments.reduce((s,a)=>s+a.outOf,0)}</span></div>
-                {weightingOn&&<div className="stat"><span className="slbl">Weighted Mode:</span><span className="sv pu">ON</span></div>}
               </>}
               <span className="hint">{isAtt?"P = Present · A = Absent · Arrow keys to navigate":"Enter marks · A = Absent · Click column header to edit weight"}</span>
             </div>
@@ -1862,13 +1912,6 @@ export default function App() {
                   Σ {totalWeight.toFixed(1)}% {totalWeight>100?"⚠ Over!":weightsOk?"✓":"≠ 100"}
                 </div>
                 {totalWeight>100&&<div className="weight-error">Weights exceed 100% — reduce to proceed</div>}
-                <button
-                  className={`wbar-toggle${showWeighted?" on":""}`}
-                  onClick={()=>setShowWeighted(v=>!v)}
-                  title="Toggle weighted total column"
-                >
-                  {showWeighted?"Weighted ON":"Show Weighted"}
-                </button>
               </div>
             )}
 
@@ -1990,14 +2033,12 @@ export default function App() {
                             </div>
                           </th>
                         ))}
-                        <th className="ft" style={{color:"#a78bfa"}}>Total %</th>
-                        {weightingOn && <th className="fw">Weighted</th>}
+                        <th className="fw">Weighted %</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredStudents.map(s=>{
-                        const sm=stuMarksSum(active,s.id);
-                        const wm=weightingOn?stuWeightedSum(active,s.id):null;
+                        const wm=stuWeightedSum(active,s.id);
                         return (
                           <tr key={s.id} className="dr">
                             <td className="tdr">
@@ -2029,11 +2070,11 @@ export default function App() {
                                 </td>
                               );
                             })}
-                            <td className="tdt" style={{background:sm?"#f3f0ff":""}}>
-                              {sm
-                                ? <span style={{color:"#7c3aed",fontWeight:600}}>
-                                    {sm.earned}/{sm.total} <span style={{color:"#aaa",fontSize:"0.61rem"}}>({sm.pct}%)</span>
-                                    {!weightingOn && (() => { const g = getGrade(sm.pct); return g ? <span className={`grade-badge ${gradeColorClass(g)}`}>{g}</span> : null; })()}
+                            <td className="tdw">
+                              {wm
+                                ? <span style={{color: wm.pct>=90?"#14633a":wm.pct>=60?"#1d4ed8":"#be2c0a", fontWeight:900}}>
+                                    {wm.pct}%
+                                    {(() => { const g = getGrade(wm.pct); return g ? <span className={`grade-badge ${gradeColorClass(g)}`}>{g}</span> : null; })()}
                                   </span>
                                 : <span style={{color:"#ccc"}}>—</span>}
                             </td>
@@ -2061,8 +2102,7 @@ export default function App() {
                           const avg=assessColAvg(active,a.id);
                           return <td key={a.id} style={{color:"#a78bfa"}}>{avg?`${avg}/${a.outOf}`:"—"}</td>;
                         })}
-                        <td className="sft" style={{color:"#a78bfa"}}>Class Avg</td>
-                        {weightingOn && <td className="sfw">Weighted</td>}
+                        <td className="sfw">{classMarksPct(active) === null ? "Weighted" : `${classMarksPct(active)}% avg`}</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -2079,6 +2119,7 @@ export default function App() {
                       <div className="insight-kicker">{isAtt ? "Attendance health" : "Marks overview"}</div>
                     </div>
                     <div className="insight-actions">
+                      <button className="insight-hide" onClick={exportInsights}>Export Insights</button>
                       <button
                         className="insight-hide"
                         onClick={()=>setInsightsMaximized(v=>!v)}
@@ -2161,8 +2202,8 @@ export default function App() {
                           <div className="metric-label">Assessments</div>
                         </div>
                         <div className="metric-card">
-                          <div className="metric-value">{assessments.reduce((s,a)=>s+a.outOf,0)}</div>
-                          <div className="metric-label">Raw marks</div>
+                          <div className="metric-value">{lowWeightedStudents.length}</div>
+                          <div className="metric-label">Below 50</div>
                         </div>
                         <div className="metric-card">
                           <div className="metric-value">{totalWeight.toFixed(0)}%</div>
@@ -2170,7 +2211,7 @@ export default function App() {
                         </div>
                         <div className="metric-card">
                           <div className="metric-value">{classMarksPct(active) === null ? "--" : `${classMarksPct(active)}%`}</div>
-                          <div className="metric-label">Class average</div>
+                          <div className="metric-label">Weighted average</div>
                         </div>
                       </div>
                       <div className="insight-card">
